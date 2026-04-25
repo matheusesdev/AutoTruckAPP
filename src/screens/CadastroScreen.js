@@ -49,9 +49,9 @@ export default function CadastroScreen({ navigation }) {
     // Simulação da chamada da API (que depois substituiremos pelo Axios de verdade)
     setTimeout(async () => {
       try {
-        await AsyncStorage.setItem('access_token', 'temp_token_123');
         setLoading(false);
-        navigation.replace('Main'); // Joga o usuário pras abas (Home)
+        Alert.alert('Sucesso', 'Conta criada. Faça login para continuar.');
+        navigation.replace('Login');
       } catch (e) {
         Alert.alert("Erro", "Erro ao salvar informações.");
         setLoading(false);
@@ -175,7 +175,7 @@ export default function CadastroScreen({ navigation }) {
           </TouchableOpacity>
 
           {/* Entrar */}
-          <TouchableOpacity style={styles.loginLink}>
+          <TouchableOpacity style={styles.loginLink} onPress={() => navigation.navigate('Login')}>
             <Text style={styles.loginLinkText}>Já tem conta? <Text style={styles.loginLinkBold}>Entrar</Text></Text>
           </TouchableOpacity>
           
