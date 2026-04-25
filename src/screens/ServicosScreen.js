@@ -1,13 +1,28 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../utils/theme';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
 
 export default function ServicosScreen() {
+  const [tab, setTab] = useState('proximos');
+
   return (
-    <View style={styles.container}><Text style={styles.text}>Agendamento de Serviços</Text></View>
+    <View>
+      {/* Abas */}
+      <View style={{ flexDirection: 'row' }}>
+        <TouchableOpacity onPress={() => setTab('proximos')}>
+          <Text>Próximos</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => setTab('historico')}>
+          <Text>Histórico</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Conteúdo */}
+      {tab === 'proximos' ? (
+        <Text>Lista de próximos serviços</Text>
+      ) : (
+        <Text>Histórico de serviços</Text>
+      )}
+    </View>
   );
 }
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background },
-  text: { fontSize: 20, fontWeight: 'bold', color: theme.colors.primary }
-});
