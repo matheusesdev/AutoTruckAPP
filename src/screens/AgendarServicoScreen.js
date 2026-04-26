@@ -16,7 +16,6 @@ export default function AgendarServicoScreen() {
     'Elétrica', 'Outro'
   ];
 
-  // PASSO 1
   if (step === 1) {
     return (
       <View>
@@ -39,7 +38,6 @@ export default function AgendarServicoScreen() {
     );
   }
 
-  // PASSO 2
   if (step === 2) {
     return (
       <ScrollView>
@@ -68,7 +66,6 @@ export default function AgendarServicoScreen() {
     );
   }
 
-  // PASSO 3
   return (
     <View>
       <Text>Resumo</Text>
