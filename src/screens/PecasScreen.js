@@ -11,9 +11,11 @@ import {
   Dimensions,
   ActivityIndicator,
   Platform,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { theme } from '../utils/theme';
-import { fetchParts } from '../services/api';
+import { fetchParts, fetchVehicles } from '../services/api';
  
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
@@ -34,7 +36,6 @@ const SkeletonCard = ({ pulseAnim }) => (
 // ─── Part Card ────────────────────────────────────────────────────────────────
 const PartCard = ({ item, onPress }) => {
   const imageUri = item.foto_url || PLACEHOLDER_IMAGE;
- 
   const formattedPrice = Number(item.preco).toLocaleString('pt-BR', {
     style: 'currency',
     currency: 'BRL',
@@ -67,6 +68,12 @@ export default function PecasScreen({ navigation }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
  
+  // Veículos para o seletor
+  const [vehicles, setVehicles] = useState([]);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [showVehicleModal, setShowVehicleModal] = useState(false);
+  const [loadingVehicles, setLoadingVehicles] = useState(false);
+ 
   const pulseAnim = useRef(new Animated.Value(0.4)).current;
   const searchTimeout = useRef(null);
  
@@ -94,22 +101,42 @@ export default function PecasScreen({ navigation }) {
     return () => clearTimeout(searchTimeout.current);
   }, [search]);
  
+  // Carregar veículos do usuário
+  const loadVehicles = async () => {
+    setLoadingVehicles(true);
+    try {
+      const result = await fetchVehicles();
+      // Suporte a { data: [] } ou array direto
+      setVehicles(Array.isArray(result) ? result : result.data || []);
+    } catch {
+      setVehicles([]);
+    } finally {
+      setLoadingVehicles(false);
+    }
+  };
+ 
+  // Carregar peças
   const loadParts = useCallback(async (pageNum, reset = false) => {
     if (pageNum === 1) setLoading(true);
     else setLoadingMore(true);
     setError(null);
  
     try {
-      const result = await fetchParts({ search: debouncedSearch, page: pageNum, limit: 20 });
+      const result = await fetchParts({
+        search: debouncedSearch,
+        page: pageNum,
+        limit: 20,
+        veiculo_id: selectedVehicle?.id || null,
+      });
       setParts(prev => (reset || pageNum === 1 ? result.data : [...prev, ...result.data]));
       setHasNextPage(result.meta.hasNextPage);
-    } catch (err) {
+    } catch {
       setError('Erro ao carregar peças. Tente novamente.');
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [debouncedSearch]);
+  }, [debouncedSearch, selectedVehicle]);
  
   useEffect(() => {
     loadParts(1, true);
@@ -127,6 +154,31 @@ export default function PecasScreen({ navigation }) {
     navigation.navigate('DetalhePeca', { partId: item.id });
   };
  
+  const handleOpenVehicleModal = () => {
+    loadVehicles();
+    setShowVehicleModal(true);
+  };
+ 
+  const handleSelectVehicle = (vehicle) => {
+    setSelectedVehicle(vehicle);
+    setShowVehicleModal(false);
+    setPage(1);
+    setParts([]);
+    setHasNextPage(true);
+  };
+ 
+  const handleClearVehicle = () => {
+    setSelectedVehicle(null);
+    setPage(1);
+    setParts([]);
+    setHasNextPage(true);
+  };
+ 
+  // Label do veículo selecionado
+  const vehicleLabel = selectedVehicle
+    ? `${selectedVehicle.marca} ${selectedVehicle.modelo} ${selectedVehicle.ano}`
+    : 'Todos os veículos';
+ 
   const renderFooter = () => {
     if (!loadingMore) return <View style={{ height: 24 }} />;
     return (
@@ -137,13 +189,32 @@ export default function PecasScreen({ navigation }) {
     );
   };
  
-  const renderEmpty = () => (
-    <View style={styles.emptyContainer}>
-      <Text style={styles.emptyIcon}>🔩</Text>
-      <Text style={styles.emptyTitle}>Nenhuma peça encontrada</Text>
-      <Text style={styles.emptySubtitle}>Tente buscar por outro termo.</Text>
-    </View>
-  );
+  const renderEmpty = () => {
+    if (selectedVehicle) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyIcon}>🔍</Text>
+          <Text style={styles.emptyTitle}>
+            Nenhuma peça compatível com{'\n'}
+            {selectedVehicle.marca} {selectedVehicle.modelo} {selectedVehicle.ano}
+          </Text>
+          <TouchableOpacity
+            style={styles.orcamentoButton}
+            onPress={() => navigation.navigate('SolicitarOrcamento')}
+          >
+            <Text style={styles.orcamentoButtonText}>Solicitar orçamento para esta peça</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyIcon}>🔩</Text>
+        <Text style={styles.emptyTitle}>Nenhuma peça encontrada</Text>
+        <Text style={styles.emptySubtitle}>Tente buscar por outro termo.</Text>
+      </View>
+    );
+  };
  
   return (
     <View style={styles.container}>
@@ -171,7 +242,35 @@ export default function PecasScreen({ navigation }) {
             </TouchableOpacity>
           )}
         </View>
+ 
+        {/* Texto de busca ativa */}
+        {debouncedSearch.length > 0 && (
+          <Text style={styles.searchingText}>
+            Buscando por '{debouncedSearch}'...
+          </Text>
+        )}
       </View>
+ 
+      {/* Seletor de veículo */}
+      <TouchableOpacity style={styles.vehicleSelector} onPress={handleOpenVehicleModal} activeOpacity={0.8}>
+        <Text style={styles.vehicleSelectorIcon}>🚛</Text>
+        <Text style={[styles.vehicleSelectorText, selectedVehicle && styles.vehicleSelectorTextActive]}>
+          {vehicleLabel}
+        </Text>
+        <Text style={styles.vehicleSelectorArrow}>▾</Text>
+      </TouchableOpacity>
+ 
+      {/* Banner do veículo selecionado */}
+      {selectedVehicle && (
+        <View style={styles.vehicleBanner}>
+          <Text style={styles.vehicleBannerText}>
+            🔧 Peças para {selectedVehicle.marca} {selectedVehicle.modelo} {selectedVehicle.ano}
+          </Text>
+          <TouchableOpacity onPress={handleClearVehicle}>
+            <Text style={styles.vehicleBannerClose}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
  
       {/* Erro */}
       {error && !loading && (
@@ -208,6 +307,74 @@ export default function PecasScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
         />
       )}
+ 
+      {/* Modal seletor de veículo */}
+      <Modal
+        visible={showVehicleModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowVehicleModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowVehicleModal(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecionar Veículo</Text>
+              <TouchableOpacity onPress={() => setShowVehicleModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+ 
+            {loadingVehicles ? (
+              <View style={styles.modalLoading}>
+                <ActivityIndicator color={theme.colors.primary} />
+                <Text style={styles.modalLoadingText}>Carregando veículos...</Text>
+              </View>
+            ) : (
+              <ScrollView>
+                {/* Opção "Todos" */}
+                <TouchableOpacity
+                  style={[styles.vehicleOption, !selectedVehicle && styles.vehicleOptionSelected]}
+                  onPress={() => handleSelectVehicle(null)}
+                >
+                  <Text style={[styles.vehicleOptionText, !selectedVehicle && styles.vehicleOptionTextSelected]}>
+                    Todos os veículos
+                  </Text>
+                  {!selectedVehicle && <Text style={styles.vehicleOptionCheck}>✓</Text>}
+                </TouchableOpacity>
+ 
+                {vehicles.length === 0 && (
+                  <View style={styles.modalEmpty}>
+                    <Text style={styles.modalEmptyText}>Nenhum veículo cadastrado.</Text>
+                    <Text style={styles.modalEmptySubtext}>Cadastre um veículo na aba Veículos.</Text>
+                  </View>
+                )}
+ 
+                {vehicles.map((v) => (
+                  <TouchableOpacity
+                    key={v.id}
+                    style={[styles.vehicleOption, selectedVehicle?.id === v.id && styles.vehicleOptionSelected]}
+                    onPress={() => handleSelectVehicle(v)}
+                  >
+                    <View>
+                      <Text style={[styles.vehicleOptionText, selectedVehicle?.id === v.id && styles.vehicleOptionTextSelected]}>
+                        {v.marca} {v.modelo} {v.ano}
+                      </Text>
+                      <Text style={styles.vehicleOptionPlate}>{v.placa}</Text>
+                    </View>
+                    {selectedVehicle?.id === v.id && (
+                      <Text style={styles.vehicleOptionCheck}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -235,7 +402,8 @@ const styles = StyleSheet.create({
   // Busca
   searchWrapper: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 12,
+    paddingBottom: 8,
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
@@ -261,6 +429,62 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.colors.disabledText,
     paddingLeft: 8,
+  },
+  searchingText: {
+    fontSize: 12,
+    color: theme.colors.disabledText,
+    marginTop: 6,
+    fontStyle: 'italic',
+  },
+ 
+  // Seletor de veículo
+  vehicleSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: theme.colors.inputBackground,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    gap: 8,
+  },
+  vehicleSelectorIcon: { fontSize: 16 },
+  vehicleSelectorText: {
+    flex: 1,
+    fontSize: 14,
+    color: theme.colors.disabledText,
+  },
+  vehicleSelectorTextActive: {
+    color: theme.colors.primary,
+    fontWeight: '600',
+  },
+  vehicleSelectorArrow: {
+    fontSize: 12,
+    color: theme.colors.disabledText,
+  },
+ 
+  // Banner do veículo selecionado
+  vehicleBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#EFF6FF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#BFDBFE',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  vehicleBannerText: {
+    fontSize: 13,
+    color: '#1D4ED8',
+    fontWeight: '600',
+    flex: 1,
+  },
+  vehicleBannerClose: {
+    fontSize: 13,
+    color: '#1D4ED8',
+    paddingLeft: 12,
+    fontWeight: '700',
   },
  
   // Grid skeleton
@@ -359,19 +583,34 @@ const styles = StyleSheet.create({
   // Empty
   emptyContainer: {
     alignItems: 'center',
-    paddingTop: 80,
+    paddingTop: 60,
     paddingHorizontal: 32,
   },
   emptyIcon: { fontSize: 44, marginBottom: 14 },
   emptyTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: theme.colors.text,
-    marginBottom: 6,
+    marginBottom: 16,
+    textAlign: 'center',
+    lineHeight: 24,
   },
   emptySubtitle: {
     fontSize: 14,
     color: theme.colors.disabledText,
+    textAlign: 'center',
+  },
+  orcamentoButton: {
+    backgroundColor: theme.colors.accent,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 4,
+  },
+  orcamentoButtonText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 14,
     textAlign: 'center',
   },
  
@@ -398,4 +637,95 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
+ 
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '60%',
+    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  modalClose: {
+    fontSize: 16,
+    color: theme.colors.disabledText,
+    padding: 4,
+  },
+  modalLoading: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    gap: 12,
+  },
+  modalLoadingText: {
+    color: theme.colors.disabledText,
+    fontSize: 14,
+  },
+  modalEmpty: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+  },
+  modalEmptyText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: 6,
+  },
+  modalEmptySubtext: {
+    fontSize: 13,
+    color: theme.colors.disabledText,
+    textAlign: 'center',
+  },
+ 
+  // Opções do modal
+  vehicleOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  vehicleOptionSelected: {
+    backgroundColor: '#EFF6FF',
+  },
+  vehicleOptionText: {
+    fontSize: 15,
+    color: theme.colors.text,
+    fontWeight: '500',
+  },
+  vehicleOptionTextSelected: {
+    color: theme.colors.primary,
+    fontWeight: '700',
+  },
+  vehicleOptionPlate: {
+    fontSize: 12,
+    color: theme.colors.disabledText,
+    marginTop: 2,
+  },
+  vehicleOptionCheck: {
+    fontSize: 16,
+    color: theme.colors.primary,
+    fontWeight: '700',
+  },
 });
