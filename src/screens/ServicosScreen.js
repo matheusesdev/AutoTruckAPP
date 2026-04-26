@@ -12,6 +12,10 @@ export default function ServicosScreen() {
           <Text>Próximos</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          onPress={() => navigation.navigate('DetalheServico', { servico: item })}>
+        </TouchableOpacity>
+
         <TouchableOpacity onPress={() => setTab('historico')}>
           <Text>Histórico</Text>
         </TouchableOpacity>

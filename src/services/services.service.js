@@ -49,3 +49,26 @@ module.exports = {
   criarAgendamento,
   listarServicos
 };
+
+const cancelarAgendamento = (id, userId) => {
+  const agendamento = agendamentos.find(a => a.id == id);
+
+  if (!agendamento) {
+    return { error: 'Agendamento não encontrado', status: 404 };
+  }
+
+  if (agendamento.user_id !== userId) {
+    return { error: 'Acesso negado', status: 403 };
+  }
+
+  if (agendamento.status !== 'agendado') {
+    return {
+      error: 'Não é possível cancelar um serviço que já está em andamento',
+      status: 400
+    };
+  }
+
+  agendamento.status = 'cancelado';
+
+  return { data: agendamento };
+};

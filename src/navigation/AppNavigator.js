@@ -14,6 +14,7 @@ import PecasScreen from '../screens/PecasScreen';
 import VeiculosScreen from '../screens/VeiculosScreen';
 import ServicosScreen from '../screens/ServicosScreen';
 import PerfilScreen from '../screens/PerfilScreen';
+import DetalheServicoScreen from '../screens/DetalheServicoScreen';
 
 import { theme } from '../utils/theme';
 
@@ -109,6 +110,13 @@ export default function AppNavigator() {
           component={TabNavigator} 
           options={{ headerShown: false }} // Esconde o cabeçalho do stack para mostrar só as abas
         />
+
+        <Stack.Screen 
+          name="DetalheServico" 
+          component={DetalheServicoScreen}
+          options={{ title: 'Detalhes do Serviço' }}
+        />
+        
       </Stack.Navigator>
     </NavigationContainer>
   );

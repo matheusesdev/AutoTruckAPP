@@ -56,3 +56,16 @@ exports.list = (req, res) => {
 
   res.json(data);
 };
+
+exports.cancelar = (req, res) => {
+  const { id } = req.params;
+  const userId = req.user?.id || 1;
+
+  const result = service.cancelarAgendamento(id, userId);
+
+  if (result.error) {
+    return res.status(result.status).json({ error: result.error });
+  }
+
+  res.json(result.data);
+};
