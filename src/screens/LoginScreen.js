@@ -37,7 +37,7 @@ export default function LoginScreen({ navigation }) {
       // Chamada de autenticação conforme requisito da AT.
       const response = await api.post('/auth/login', {
         email: email.trim(),
-        senha,
+        password: senha,
       });
 
       // Mantém compatibilidade com possíveis formatos de resposta da API.
@@ -68,7 +68,15 @@ export default function LoginScreen({ navigation }) {
         routes: [{ name: 'MainTabs' }],
       });
     } catch (error) {
-      Alert.alert('Erro', 'E-mail ou senha incorretos');
+      console.error(error);
+
+      const rawMessage = error?.response?.data?.message;
+
+      const errorMessage = Array.isArray(rawMessage)
+        ? rawMessage.join('\n')
+        : rawMessage || error?.response?.data?.error || error?.message || 'E-mail ou senha incorretos';
+
+      Alert.alert('Erro', errorMessage);
     } finally {
       setLoading(false);
     }

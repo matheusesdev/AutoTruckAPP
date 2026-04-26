@@ -12,9 +12,9 @@ import {
   Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
+import api from '../services/api';
 import { theme } from '../utils/theme';
 
 export default function CadastroScreen({ navigation }) {
@@ -45,18 +45,34 @@ export default function CadastroScreen({ navigation }) {
   const isFormValid = nome && isEmailValid && isTelefoneValid && isSenhaValid && isSenhasIguais && tipoUsuario;
 
   const handleCadastrar = async () => {
-    setLoading(true);
-    // Simulação da chamada da API (que depois substituiremos pelo Axios de verdade)
-    setTimeout(async () => {
-      try {
-        setLoading(false);
-        Alert.alert('Sucesso', 'Conta criada. Faça login para continuar.');
-        navigation.replace('Login');
-      } catch (e) {
-        Alert.alert("Erro", "Erro ao salvar informações.");
-        setLoading(false);
-      }
-    }, 1500);
+    if (!isFormValid || loading) return;
+
+    try {
+      setLoading(true);
+
+      await api.post('/auth/register', {
+        nome: nome.trim(),
+        email: email.trim(),
+        telefone,
+        password: senha,
+        tipo_usuario: tipoUsuario,
+      });
+
+      Alert.alert('Sucesso', 'Conta criada. Faça login para continuar.');
+      navigation.replace('Login');
+    } catch (error) {
+      console.error(error);
+
+      const rawMessage = error?.response?.data?.message;
+
+      const errorMessage = Array.isArray(rawMessage)
+        ? rawMessage.join('\n')
+        : rawMessage || error?.response?.data?.error || error?.message || 'Erro ao salvar informações.';
+
+      Alert.alert('Erro', errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -215,7 +231,18 @@ const styles = StyleSheet.create({
   eyeIcon: { padding: 15 },
   errorText: { color: theme.colors.error, fontSize: 11, marginTop: 4, marginLeft: 2, fontWeight: '500' },
   button: { padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 10, height: 54, justifyContent: 'center' },
-  buttonActive: { backgroundColor: theme.colors.accent, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3 },
+  buttonActive: {
+    backgroundColor: theme.colors.accent,
+    ...(Platform.OS === 'web'
+      ? { boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.2)' }
+      : {
+          elevation: 2,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.2,
+          shadowRadius: 3,
+        }),
+  },
   buttonDisabled: { backgroundColor: '#CBD5E1' },
   buttonText: { color: '#FFF', fontWeight: 'bold', fontSize: 15, letterSpacing: 1 },
   loginLink: { marginTop: 24, alignItems: 'center' },

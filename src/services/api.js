@@ -1,10 +1,14 @@
 import axios from 'axios';
+import { Platform } from 'react-native';
 import { logoutAndRedirectToLogin } from './authSession';
 
 // Cliente HTTP central da aplicação.
-// Usa 10.0.2.2 para apontar para o localhost da máquina host no emulador Android.
+// Web usa localhost. Android usa 10.0.2.2 para acessar o host local.
+const API_BASE_URL =
+  Platform.OS === 'web' ? 'http://localhost:3001/api' : 'http://10.0.2.2:3001/api';
+
 const api = axios.create({
-  baseURL: 'http://10.0.2.2:3001/api',
+  baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
