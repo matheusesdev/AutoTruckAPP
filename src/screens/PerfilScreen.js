@@ -1,4 +1,5 @@
 import React from 'react';
+<<<<<<< HEAD
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../utils/theme';
@@ -64,4 +65,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+=======
+import { View, Text, StyleSheet } from 'react-native';
+import { theme } from '../utils/theme';
+
+export default function PerfilScreen() {
+  return (
+    <View style={styles.container}><Text style={styles.text}>Meu Perfil</Text></View>
+  );
+}
+const styles = StyleSheet.create({
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background },
+  text: { fontSize: 20, fontWeight: 'bold', color: theme.colors.primary }
+>>>>>>> 540af10c1c8c34a91cad2b89360faab90e0af59b
 });

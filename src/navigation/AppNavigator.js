@@ -14,7 +14,6 @@ import PecasScreen from '../screens/PecasScreen';
 import VeiculosScreen from '../screens/VeiculosScreen';
 import ServicosScreen from '../screens/ServicosScreen';
 import PerfilScreen from '../screens/PerfilScreen';
-import { navigationRef } from './navigationService';
 
 import { theme } from '../utils/theme';
 
@@ -88,7 +87,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer>
       <Stack.Navigator initialRouteName={initialRoute}>
         {/* Tela de Login */}
         <Stack.Screen
