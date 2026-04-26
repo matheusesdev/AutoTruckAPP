@@ -36,3 +36,14 @@ api.interceptors.response.use(
 );
 
 export default api;
+export const fetchParts = async ({ search = '', page = 1, limit = 20 } = {}) => {
+  const params = { page, limit };
+  if (search) params.search = search;
+  const response = await api.get('/parts', { params });
+  return response.data;
+};
+
+export const fetchPartById = async (id) => {
+  const response = await api.get(`/parts/${id}`);
+  return response.data;
+};
