@@ -14,7 +14,7 @@ export default function VeiculosScreen({ navigation }) {
         onPress={() => navigation.navigate('Agendar')}
       >
         <Text style={styles.buttonText}>Agendar Novo Serviço</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> 
     </View>
   );
 }
