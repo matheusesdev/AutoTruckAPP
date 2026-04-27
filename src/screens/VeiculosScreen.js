@@ -1,79 +1,151 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { theme } from '../utils/theme';
+import React, { useState, useCallback, useEffect } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  TextInput,
+  ActivityIndicator,
+  StyleSheet
+} from 'react-native';
+import api from '../services/api';
+import { useFocusEffect } from '@react-navigation/native';
 
-/* Adicionamos o { navigation } como parâmetro da função */
 export default function VeiculosScreen({ navigation }) {
+  const [veiculos, setVeiculos] = useState([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+      setVeiculos([]); // 🔥 ADICIONADO
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  async function load(reset = false) {
+    if (loadingMore) return;
+
+    setLoadingMore(true);
+
+    const currentPage = reset ? 1 : page;
+
+    try {
+      const res = await api.get('/vehicles', {
+        params: {
+          page: currentPage,
+          limit: 20,
+          search: debouncedSearch
+        }
+      });
+
+      if (reset) {
+        setVeiculos(res.data.dados);
+      } else {
+        setVeiculos(prev => [...prev, ...res.data.dados]);
+      }
+
+      setTotal(res.data.total);
+      setPage(currentPage + 1);
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      load(true);
+    }, [debouncedSearch])
+  );
+
+  function loadMore() {
+    if (!loadingMore && veiculos.length < total) { // 🔥 ALTERADO
+      load();
+    }
+  }
+
   return (
     <View style={styles.container}>
-<<<<<<< HEAD
-      {veiculos.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.text}>🚚</Text>
-          <Text style={styles.text}>Nenhum veículo cadastrado</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Cadastro')}>
-            <Text style={styles.link}>Cadastrar meu primeiro veículo</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <FlatList
-          data={veiculos}
-          keyExtractor={item => item.id}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() =>
-                navigation.navigate('EditarVeiculo', { vehicle: item })
-              }
-            >
-              <Text style={styles.title}>{item.marca} {item.modelo}</Text>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{item.placa}</Text>
-              </View>
-              <Text style={styles.info}>{item.ano} • {item.motor}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      )}
-=======
-      <Text style={styles.text}>Meus Veículos</Text>
->>>>>>> c404ef885a592b2223d089f9aa44ebf2937faf13
 
-      {/* Botão de Agendar */}
-      <TouchableOpacity 
-        style={styles.button} 
-        onPress={() => navigation.navigate('Agendar')}
-      >
-        <Text style={styles.buttonText}>Agendar Novo Serviço</Text>
-      </TouchableOpacity> 
+      {/* BUSCA */}
+      <View style={styles.searchContainer}>
+        <Text>🔍</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Buscar por placa ou modelo..."
+          value={search}
+          onChangeText={setSearch}
+        />
+        {search !== '' && (
+          <TouchableOpacity onPress={() => setSearch('')}>
+            <Text>❌</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* CONTADOR */}
+      <Text style={styles.count}>
+        {total} veículos cadastrados
+      </Text>
+
+      <FlatList
+        data={veiculos}
+        keyExtractor={item => String(item.id)}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() =>
+              navigation.navigate('EditarVeiculo', { vehicle: item })
+            }
+          >
+            <Text style={styles.title}>
+              {item.marca} {item.modelo}
+            </Text>
+
+            <Text>{item.placa}</Text>
+            <Text>{item.ano} • {item.motor}</Text>
+          </TouchableOpacity>
+        )}
+        ListFooterComponent={
+          loadingMore ? <ActivityIndicator /> : null
+        }
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    backgroundColor: theme.colors.background 
+  container: { flex: 1, padding: 16 },
+
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eee',
+    padding: 10,
+    borderRadius: 10
   },
-  text: { 
-    fontSize: 20, 
-    fontWeight: 'bold', 
-    color: theme.colors.primary,
-    marginBottom: 20 /* Espaço para o botão não ficar colado */
+
+  input: { flex: 1, marginLeft: 10 },
+
+  count: { marginVertical: 10, fontWeight: 'bold' },
+
+  card: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 10
   },
-  button: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 8,
-    elevation: 2 /* Sombra leve no Android */
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600'
-  }
+
+  title: { fontWeight: 'bold' }
 });
