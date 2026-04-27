@@ -1,81 +1,154 @@
-import React from 'react';
-<<<<<<< HEAD
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Alert
+} from 'react-native';
 import { theme } from '../utils/theme';
-import { logoutAndRedirectToLogin } from '../services/authSession';
 
-export default function PerfilScreen({ navigation }) {
-  const handleLogout = () => {
-    Alert.alert('Sair', 'Tem certeza que deseja sair?', [
-      {
-        text: 'Cancelar',
-        style: 'cancel',
-      },
-      {
-        text: 'Confirmar',
-        style: 'destructive',
-        onPress: async () => {
-          await logoutAndRedirectToLogin(navigation);
-        },
-      },
-    ]);
+export default function PerfilScreen() {
+  const [user, setUser] = useState({
+    nome: "João Silva",
+    email: "joao@email.com",
+    telefone: "(77) 99999-9999",
+    tipo: "Caminhoneiro Autônomo",
+    criado_em: "2024-01-10"
+  });
+
+  const [editUser, setEditUser] = useState(user);
+
+  const isChanged =
+    user.nome !== editUser.nome ||
+    user.telefone !== editUser.telefone ||
+    user.tipo !== editUser.tipo;
+
+  const getInitials = (nome) => {
+    return nome
+      .split(' ')
+      .map(n => n)
+      .join('')
+      .toUpperCase();
+  };
+
+  const handleSave = () => {
+    setUser(editUser);
+    Alert.alert("Sucesso", "Dados atualizados!");
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.text}>Meu Perfil</Text>
+      {/* AVATAR */}
+      <View style={styles.avatar}>
+        <Text style={styles.avatarText}>
+          {getInitials(editUser.nome)}
+        </Text>
       </View>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Ionicons name="log-out-outline" size={18} color="#FFFFFF" style={styles.logoutIcon} />
-        <Text style={styles.logoutButtonText}>Sair</Text>
-      </TouchableOpacity>
+      {/* NOME E EMAIL */}
+      <Text style={styles.nome}>{editUser.nome}</Text>
+      <Text style={styles.email}>{editUser.email}</Text>
+
+      {/* BADGE */}
+      <View style={styles.badge}>
+        <Text style={styles.badgeText}>{editUser.tipo}</Text>
+      </View>
+
+      {/* CAMPOS DE EDIÇÃO */}
+      <TextInput
+        style={styles.input}
+        value={editUser.nome}
+        onChangeText={(text) =>
+          setEditUser({ ...editUser, nome: text })
+        }
+        placeholder="Nome"
+      />
+
+      <TextInput
+        style={styles.input}
+        value={editUser.telefone}
+        onChangeText={(text) =>
+          setEditUser({ ...editUser, telefone: text })
+        }
+        placeholder="Telefone"
+      />
+
+      {/* BOTÃO SALVAR */}
+      {isChanged && (
+        <TouchableOpacity style={styles.button} onPress={handleSave}>
+          <Text style={styles.buttonText}>Salvar alterações</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* DATA */}
+      <Text style={styles.data}>
+        Membro desde {user.criado_em}
+      </Text>
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: 20,
-    paddingVertical: 24,
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: theme.colors.background
   },
-  content: {
-    flex: 1,
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#2563EB',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 10
   },
-  text: { fontSize: 20, fontWeight: 'bold', color: theme.colors.primary },
-  logoutButton: {
+  avatarText: {
+    color: '#fff',
+    fontSize: 24
+  },
+  nome: {
+    fontSize: 20,
+    color: theme.colors.text || '#000'
+  },
+  email: {
+    color: 'gray',
+    marginBottom: 10
+  },
+  badge: {
+    backgroundColor: '#E5E7EB',
+    padding: 6,
+    borderRadius: 10,
+    marginBottom: 20
+  },
+  badgeText: {
+    fontSize: 12
+  },
+  input: {
     width: '100%',
-    backgroundColor: '#DC2626',
-    paddingVertical: 14,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 8,
+    color: '#000'
   },
-  logoutIcon: {
-    marginRight: 8,
+  button: {
+    backgroundColor: 'orange',
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 10,
+    width: '100%',
+    alignItems: 'center'
   },
-  logoutButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+  buttonText: {
+    color: '#fff'
   },
-=======
-import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../utils/theme';
-
-export default function PerfilScreen() {
-  return (
-    <View style={styles.container}><Text style={styles.text}>Meu Perfil</Text></View>
-  );
-}
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background },
-  text: { fontSize: 20, fontWeight: 'bold', color: theme.colors.primary }
->>>>>>> 540af10c1c8c34a91cad2b89360faab90e0af59b
+  data: {
+    marginTop: 20,
+    color: 'gray'
+  }
 });

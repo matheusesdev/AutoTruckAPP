@@ -14,6 +14,10 @@ import PecasScreen from '../screens/PecasScreen';
 import VeiculosScreen from '../screens/VeiculosScreen';
 import ServicosScreen from '../screens/ServicosScreen';
 import PerfilScreen from '../screens/PerfilScreen';
+import { navigationRef } from './navigationService';
+import DetalhePecasScreen from '../screens/DetalhePecasScreen';
+import OrcamentosScreen from '../screens/OrcamentosScreen';
+import SolicitarOrcamentoScreen from '../screens/SolicitarOrcamentoScreen';
 
 import { theme } from '../utils/theme';
 
@@ -46,6 +50,7 @@ function TabNavigator() {
       <Tab.Screen name="Veículos" component={VeiculosScreen} />
       <Tab.Screen name="Serviços" component={ServicosScreen} />
       <Tab.Screen name="Perfil" component={PerfilScreen} />
+      <Tab.Screen name="Orçamentos" component={OrcamentosScreen} />
     </Tab.Navigator>
   );
 }
@@ -109,6 +114,17 @@ export default function AppNavigator() {
           component={TabNavigator} 
           options={{ headerShown: false }} // Esconde o cabeçalho do stack para mostrar só as abas
         />
+        {/* Detalhe de Peça */}
+        <Stack.Screen
+          name="DetalhePecas"
+          component={DetalhePecasScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+  name="SolicitarOrcamento"
+  component={SolicitarOrcamentoScreen}
+  options={{ headerShown: false }}
+/>
       </Stack.Navigator>
     </NavigationContainer>
   );
