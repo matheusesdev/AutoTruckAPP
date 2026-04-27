@@ -43,6 +43,7 @@ const ServicosScreen = ({ navigation }) => {
     );
   };
 
+
   return (
     <View style={styles.container}>
       <View style={styles.tabContainer}>
@@ -84,6 +85,7 @@ const styles = StyleSheet.create({
   vazio: { alignItems: 'center', marginTop: 50 },
   btnNovo: { backgroundColor: '#007bff', padding: 12, borderRadius: 8, marginTop: 15 }
 });
+
 
 export default ServicosScreen;
 
