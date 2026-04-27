@@ -49,13 +49,18 @@ export default function VeiculosScreen({ navigation }) {
           keyExtractor={item => item.id}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() =>
+                navigation.navigate('EditarVeiculo', { vehicle: item })
+              }
+            >
               <Text style={styles.title}>{item.marca} {item.modelo}</Text>
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{item.placa}</Text>
               </View>
               <Text style={styles.info}>{item.ano} • {item.motor}</Text>
-            </View>
+            </TouchableOpacity>
           )}
         />
       )}
