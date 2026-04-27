@@ -17,6 +17,10 @@ import PerfilScreen from '../screens/PerfilScreen';
 // NOVOS IMPORTS: Telas que você criou para o Agendamento e Cancelamento
 import AgendarServicoScreen from '../screens/AgendarServicoScreen';
 import DetalheServicoScreen from '../screens/DetalheServicoScreen';
+import { navigationRef } from './navigationService';
+import DetalhePecasScreen from '../screens/DetalhePecasScreen';
+import OrcamentosScreen from '../screens/OrcamentosScreen';
+import SolicitarOrcamentoScreen from '../screens/SolicitarOrcamentoScreen';
 
 import { theme } from '../utils/theme';
 
@@ -46,6 +50,7 @@ function TabNavigator() {
       <Tab.Screen name="Veículos" component={VeiculosScreen} />
       <Tab.Screen name="Serviços" component={ServicosScreen} />
       <Tab.Screen name="Perfil" component={PerfilScreen} />
+      <Tab.Screen name="Orçamentos" component={OrcamentosScreen} />
     </Tab.Navigator>
   );
 }
@@ -117,6 +122,17 @@ export default function AppNavigator() {
           options={{ title: 'Detalhes do Serviço', headerTintColor: theme.colors.primary }} 
         />
 
+        {/* Detalhe de Peça */}
+        <Stack.Screen
+          name="DetalhePecas"
+          component={DetalhePecasScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+  name="SolicitarOrcamento"
+  component={SolicitarOrcamentoScreen}
+  options={{ headerShown: false }}
+/>
       </Stack.Navigator>
     </NavigationContainer>
   );
