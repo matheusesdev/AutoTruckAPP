@@ -1,3 +1,6 @@
+// src/screens/PecasScreen.js
+// AT-11 + AT-12 + AT-16 — Catálogo de Peças com filtro, busca e suporte offline
+ 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -16,10 +19,13 @@ import {
 } from 'react-native';
 import { theme } from '../utils/theme';
 import { fetchParts, fetchVehicles } from '../services/api';
+import { salvarCache, carregarCache } from '../utils/cache';
+import { useConectividade } from '../hooks/useConectividade';
  
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
 const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/300x200/1B3A6B/FFFFFF?text=AutoTruck';
+const CACHE_KEY = 'pecas_catalogo';
  
 // ─── Skeleton Card ────────────────────────────────────────────────────────────
 const SkeletonCard = ({ pulseAnim }) => (
@@ -59,6 +65,8 @@ const PartCard = ({ item, onPress }) => {
  
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function PecasScreen({ navigation }) {
+  const { temInternet } = useConectividade();
+ 
   const [parts, setParts] = useState([]);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -67,6 +75,9 @@ export default function PecasScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
+  const [isOffline, setIsOffline] = useState(false);
+  const [cacheDate, setCacheDate] = useState(null);
+  const [noCache, setNoCache] = useState(false);
  
   // Veículos para o seletor
   const [vehicles, setVehicles] = useState([]);
@@ -76,6 +87,9 @@ export default function PecasScreen({ navigation }) {
  
   const pulseAnim = useRef(new Animated.Value(0.4)).current;
   const searchTimeout = useRef(null);
+ 
+  // Guarda o valor anterior de temInternet para detectar reconexão
+  const prevTemInternet = useRef(temInternet);
  
   // Animação do skeleton
   useEffect(() => {
@@ -101,12 +115,23 @@ export default function PecasScreen({ navigation }) {
     return () => clearTimeout(searchTimeout.current);
   }, [search]);
  
-  // Carregar veículos do usuário
+  // Reconexão: atualiza automaticamente quando volta a internet
+  useEffect(() => {
+    if (!prevTemInternet.current && temInternet) {
+      // Voltou a internet — recarrega da API
+      setPage(1);
+      setParts([]);
+      setHasNextPage(true);
+      loadParts(1, true);
+    }
+    prevTemInternet.current = temInternet;
+  }, [temInternet]);
+ 
+  // Carregar veículos
   const loadVehicles = async () => {
     setLoadingVehicles(true);
     try {
       const result = await fetchVehicles();
-      // Suporte a { data: [] } ou array direto
       setVehicles(Array.isArray(result) ? result : result.data || []);
     } catch {
       setVehicles([]);
@@ -115,12 +140,34 @@ export default function PecasScreen({ navigation }) {
     }
   };
  
-  // Carregar peças
+  // Carregar peças — online ou do cache
   const loadParts = useCallback(async (pageNum, reset = false) => {
     if (pageNum === 1) setLoading(true);
     else setLoadingMore(true);
     setError(null);
+    setNoCache(false);
  
+    // ── SEM INTERNET ──────────────────────────────────────────────────────────
+    if (!temInternet) {
+      setIsOffline(true);
+      const cached = await carregarCache(CACHE_KEY);
+ 
+      if (cached) {
+        setParts(cached.data || cached);
+        setCacheDate(cached.savedAt || null);
+        setHasNextPage(false); // cache não tem paginação
+      } else {
+        setParts([]);
+        setNoCache(true);
+      }
+ 
+      setLoading(false);
+      setLoadingMore(false);
+      return;
+    }
+ 
+    // ── COM INTERNET ──────────────────────────────────────────────────────────
+    setIsOffline(false);
     try {
       const result = await fetchParts({
         search: debouncedSearch,
@@ -128,22 +175,41 @@ export default function PecasScreen({ navigation }) {
         limit: 20,
         veiculo_id: selectedVehicle?.id || null,
       });
-      setParts(prev => (reset || pageNum === 1 ? result.data : [...prev, ...result.data]));
+ 
+      const newParts = reset || pageNum === 1 ? result.data : [...parts, ...result.data];
+      setParts(newParts);
       setHasNextPage(result.meta.hasNextPage);
+ 
+      // Salva no cache apenas a primeira página sem filtros (dados gerais)
+      if (pageNum === 1 && !selectedVehicle && !debouncedSearch) {
+        await salvarCache(CACHE_KEY, {
+          data: result.data,
+          savedAt: new Date().toISOString(),
+        });
+      }
     } catch {
-      setError('Erro ao carregar peças. Tente novamente.');
+      // Falha na API — tenta o cache como fallback
+      const cached = await carregarCache(CACHE_KEY);
+      if (cached) {
+        setParts(cached.data || cached);
+        setCacheDate(cached.savedAt || null);
+        setIsOffline(true);
+        setHasNextPage(false);
+      } else {
+        setError('Erro ao carregar peças. Tente novamente.');
+      }
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [debouncedSearch, selectedVehicle]);
+  }, [debouncedSearch, selectedVehicle, temInternet]);
  
   useEffect(() => {
     loadParts(1, true);
   }, [loadParts]);
  
   const handleLoadMore = () => {
-    if (!loadingMore && hasNextPage && !loading) {
+    if (!loadingMore && hasNextPage && !loading && !isOffline) {
       const next = page + 1;
       setPage(next);
       loadParts(next);
@@ -174,7 +240,22 @@ export default function PecasScreen({ navigation }) {
     setHasNextPage(true);
   };
  
-  // Label do veículo selecionado
+  // Formata a data do cache em pt-BR
+  const formatCacheDate = (isoDate) => {
+    if (!isoDate) return 'data desconhecida';
+    try {
+      return new Date(isoDate).toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return 'data desconhecida';
+    }
+  };
+ 
   const vehicleLabel = selectedVehicle
     ? `${selectedVehicle.marca} ${selectedVehicle.modelo} ${selectedVehicle.ano}`
     : 'Todos os veículos';
@@ -190,6 +271,20 @@ export default function PecasScreen({ navigation }) {
   };
  
   const renderEmpty = () => {
+    // Sem cache e sem internet
+    if (noCache) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyIcon}>📡</Text>
+          <Text style={styles.emptyTitle}>Sem conexão</Text>
+          <Text style={styles.emptySubtitle}>
+            Conecte à internet para ver o catálogo.
+          </Text>
+        </View>
+      );
+    }
+ 
+    // Filtro de veículo sem resultados
     if (selectedVehicle) {
       return (
         <View style={styles.emptyContainer}>
@@ -207,6 +302,7 @@ export default function PecasScreen({ navigation }) {
         </View>
       );
     }
+ 
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyIcon}>🔩</Text>
@@ -223,45 +319,56 @@ export default function PecasScreen({ navigation }) {
         <Text style={styles.headerTitle}>Catálogo de Peças</Text>
       </View>
  
-      {/* Busca */}
-      <View style={styles.searchWrapper}>
-        <View style={styles.searchContainer}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar peça..."
-            placeholderTextColor={theme.colors.disabledText}
-            value={search}
-            onChangeText={setSearch}
-            returnKeyType="search"
-            autoCorrect={false}
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <Text style={styles.clearIcon}>✕</Text>
-            </TouchableOpacity>
+      {/* Banner offline */}
+      {isOffline && !noCache && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineBannerText}>
+            ⚠️ Exibindo peças salvas · Última atualização: {formatCacheDate(cacheDate)}
+          </Text>
+        </View>
+      )}
+ 
+      {/* Busca — só exibe com internet */}
+      {!isOffline && (
+        <View style={styles.searchWrapper}>
+          <View style={styles.searchContainer}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar peça..."
+              placeholderTextColor={theme.colors.disabledText}
+              value={search}
+              onChangeText={setSearch}
+              returnKeyType="search"
+              autoCorrect={false}
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <Text style={styles.clearIcon}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          {debouncedSearch.length > 0 && (
+            <Text style={styles.searchingText}>
+              Buscando por '{debouncedSearch}'...
+            </Text>
           )}
         </View>
+      )}
  
-        {/* Texto de busca ativa */}
-        {debouncedSearch.length > 0 && (
-          <Text style={styles.searchingText}>
-            Buscando por '{debouncedSearch}'...
+      {/* Seletor de veículo — só exibe com internet */}
+      {!isOffline && (
+        <TouchableOpacity style={styles.vehicleSelector} onPress={handleOpenVehicleModal} activeOpacity={0.8}>
+          <Text style={styles.vehicleSelectorIcon}>🚛</Text>
+          <Text style={[styles.vehicleSelectorText, selectedVehicle && styles.vehicleSelectorTextActive]}>
+            {vehicleLabel}
           </Text>
-        )}
-      </View>
+          <Text style={styles.vehicleSelectorArrow}>▾</Text>
+        </TouchableOpacity>
+      )}
  
-      {/* Seletor de veículo */}
-      <TouchableOpacity style={styles.vehicleSelector} onPress={handleOpenVehicleModal} activeOpacity={0.8}>
-        <Text style={styles.vehicleSelectorIcon}>🚛</Text>
-        <Text style={[styles.vehicleSelectorText, selectedVehicle && styles.vehicleSelectorTextActive]}>
-          {vehicleLabel}
-        </Text>
-        <Text style={styles.vehicleSelectorArrow}>▾</Text>
-      </TouchableOpacity>
- 
-      {/* Banner do veículo selecionado */}
-      {selectedVehicle && (
+      {/* Banner veículo selecionado */}
+      {selectedVehicle && !isOffline && (
         <View style={styles.vehicleBanner}>
           <Text style={styles.vehicleBannerText}>
             🔧 Peças para {selectedVehicle.marca} {selectedVehicle.modelo} {selectedVehicle.ano}
@@ -335,7 +442,6 @@ export default function PecasScreen({ navigation }) {
               </View>
             ) : (
               <ScrollView>
-                {/* Opção "Todos" */}
                 <TouchableOpacity
                   style={[styles.vehicleOption, !selectedVehicle && styles.vehicleOptionSelected]}
                   onPress={() => handleSelectVehicle(null)}
@@ -397,6 +503,21 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+ 
+  // Banner offline
+  offlineBanner: {
+    backgroundColor: '#FEF9C3',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDE68A',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  offlineBannerText: {
+    fontSize: 12,
+    color: '#92400E',
+    fontWeight: '600',
+    textAlign: 'center',
   },
  
   // Busca
@@ -463,7 +584,7 @@ const styles = StyleSheet.create({
     color: theme.colors.disabledText,
   },
  
-  // Banner do veículo selecionado
+  // Banner veículo selecionado
   vehicleBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -695,8 +816,6 @@ const styles = StyleSheet.create({
     color: theme.colors.disabledText,
     textAlign: 'center',
   },
- 
-  // Opções do modal
   vehicleOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -706,9 +825,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  vehicleOptionSelected: {
-    backgroundColor: '#EFF6FF',
-  },
+  vehicleOptionSelected: { backgroundColor: '#EFF6FF' },
   vehicleOptionText: {
     fontSize: 15,
     color: theme.colors.text,
