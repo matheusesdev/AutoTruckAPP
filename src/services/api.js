@@ -1,8 +1,15 @@
 import axios from 'axios';
 <<<<<<< HEAD
+<<<<<<< HEAD
+
+
+// Cliente HTTP central da aplicação.
+// Usa 10.0.2.2 para apontar para o localhost da máquina host no emulador Android.
+=======
 
 // Cliente HTTP central da aplicação.
 // Mantive o 10.0.2.2 que é o padrão para emuladores Android acessarem o localhost.
+>>>>>>> fc870fab37a8edf7f0d052f944a0f3e0cdccde7a
 =======
 import { Platform } from 'react-native';
 import { logoutAndRedirectToLogin } from './authSession';
@@ -21,6 +28,13 @@ const api = axios.create({
   },
 });
 <<<<<<< HEAD
+<<<<<<< HEAD
+
+const api = axios.create({
+  baseURL: 'https://sua-api-autotruck.com', // Substitua pela URL real do projeto
+});
+=======
+>>>>>>> fc870fab37a8edf7f0d052f944a0f3e0cdccde7a
 
 export const agendamentoService = {
   // GET /services/slots-disponiveis?data=YYYY-MM-DD
@@ -68,7 +82,10 @@ export const agendamentoService = {
   }
 };
 
+<<<<<<< HEAD
+=======
 export default api;
+>>>>>>> fc870fab37a8edf7f0d052f944a0f3e0cdccde7a
 =======
  
 let isHandlingUnauthorized = false;
@@ -91,6 +108,10 @@ api.interceptors.response.use(
   }
 );
  
+<<<<<<< HEAD
+>>>>>>> origin/main
+=======
+>>>>>>> fc870fab37a8edf7f0d052f944a0f3e0cdccde7a
 export default api;
  
 // AT-11 — Catálogo de Peças
