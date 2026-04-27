@@ -10,7 +10,6 @@ import {
 import { theme } from '../utils/theme';
 
 export default function PerfilScreen() {
-
   const [user, setUser] = useState({
     nome: "João Silva",
     email: "joao@email.com",
@@ -29,7 +28,7 @@ export default function PerfilScreen() {
   const getInitials = (nome) => {
     return nome
       .split(' ')
-      .map(n => n[0])
+      .map(n => n)
       .join('')
       .toUpperCase();
   };
@@ -41,7 +40,6 @@ export default function PerfilScreen() {
 
   return (
     <View style={styles.container}>
-
       {/* AVATAR */}
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>
@@ -58,7 +56,7 @@ export default function PerfilScreen() {
         <Text style={styles.badgeText}>{editUser.tipo}</Text>
       </View>
 
-      {/* CAMPOS */}
+      {/* CAMPOS DE EDIÇÃO */}
       <TextInput
         style={styles.input}
         value={editUser.nome}
@@ -88,7 +86,6 @@ export default function PerfilScreen() {
       <Text style={styles.data}>
         Membro desde {user.criado_em}
       </Text>
-
     </View>
   );
 }
@@ -111,12 +108,11 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold'
+    fontSize: 24
   },
   nome: {
     fontSize: 20,
-    fontWeight: 'bold'
+    color: theme.colors.text || '#000'
   },
   email: {
     color: 'gray',
@@ -137,17 +133,19 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     padding: 10,
     marginBottom: 10,
-    borderRadius: 8
+    borderRadius: 8,
+    color: '#000'
   },
   button: {
     backgroundColor: 'orange',
     padding: 15,
     borderRadius: 10,
-    marginTop: 10
+    marginTop: 10,
+    width: '100%',
+    alignItems: 'center'
   },
   buttonText: {
-    color: '#fff',
-    fontWeight: 'bold'
+    color: '#fff'
   },
   data: {
     marginTop: 20,

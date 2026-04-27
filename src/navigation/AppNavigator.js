@@ -4,9 +4,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { ActivityIndicator, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons'; // Usando os ícones do Expo
+import { Ionicons } from '@expo/vector-icons';
 
-// Telas Placeholder que criamos (Verifique se elas existem na pasta src/screens/)
 import LoginScreen from '../screens/LoginScreen';
 import CadastroScreen from '../screens/CadastroScreen';
 import HomeScreen from '../screens/HomeScreen';
@@ -14,6 +13,10 @@ import PecasScreen from '../screens/PecasScreen';
 import VeiculosScreen from '../screens/VeiculosScreen';
 import ServicosScreen from '../screens/ServicosScreen';
 import PerfilScreen from '../screens/PerfilScreen';
+
+// NOVOS IMPORTS: Telas que você criou para o Agendamento e Cancelamento
+import AgendarServicoScreen from '../screens/AgendarServicoScreen';
+import DetalheServicoScreen from '../screens/DetalheServicoScreen';
 import { navigationRef } from './navigationService';
 import DetalhePecasScreen from '../screens/DetalhePecasScreen';
 import OrcamentosScreen from '../screens/OrcamentosScreen';
@@ -24,25 +27,22 @@ import { theme } from '../utils/theme';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-// Navegação das 5 Abas (Bottom Tabs)
 function TabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-
           if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
           else if (route.name === 'Peças') iconName = focused ? 'build' : 'build-outline';
           else if (route.name === 'Veículos') iconName = focused ? 'bus' : 'bus-outline';
           else if (route.name === 'Serviços') iconName = focused ? 'construct' : 'construct-outline';
           else if (route.name === 'Perfil') iconName = focused ? 'person' : 'person-outline';
-
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: theme.colors.accent, // Laranja
+        tabBarActiveTintColor: theme.colors.accent,
         tabBarInactiveTintColor: 'gray',
-        headerShown: false, // Esconde o cabeçalho padrão de cada aba
+        headerShown: false,
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
@@ -55,7 +55,6 @@ function TabNavigator() {
   );
 }
 
-// Navegação Principal (Stack Navigator) que engloba o Menu e outras telas independentes (como Cadastro)
 export default function AppNavigator() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [initialRoute, setInitialRoute] = useState('Login');
@@ -73,13 +72,11 @@ export default function AppNavigator() {
         if (!hasValidSession && (savedToken || savedUserData)) {
           await AsyncStorage.multiRemove(['access_token', 'user_data']);
         }
-
         setInitialRoute(hasValidSession ? 'MainTabs' : 'Login');
       } finally {
         setIsCheckingAuth(false);
       }
     };
-
     checkSavedSession();
   }, []);
 
@@ -92,28 +89,39 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer>
       <Stack.Navigator initialRouteName={initialRoute}>
-        {/* Tela de Login */}
         <Stack.Screen
           name="Login"
           component={LoginScreen}
           options={{ headerShown: false }}
         />
 
-        {/* Tela de Cadastro */}
         <Stack.Screen 
           name="Cadastro" 
           component={CadastroScreen} 
           options={{ headerShown: false }} 
         />
         
-        {/* Telas logadas do Menu Base */}
         <Stack.Screen 
           name="MainTabs" 
           component={TabNavigator} 
-          options={{ headerShown: false }} // Esconde o cabeçalho do stack para mostrar só as abas
+          options={{ headerShown: false }} 
         />
+
+        {/* PASSO 1: Registro das novas telas de Agendamento e Detalhes */}
+        <Stack.Screen 
+          name="Agendar" 
+          component={AgendarServicoScreen} 
+          options={{ title: 'Novo Agendamento', headerTintColor: theme.colors.primary }} 
+        />
+
+        <Stack.Screen 
+          name="DetalheServico" 
+          component={DetalheServicoScreen} 
+          options={{ title: 'Detalhes do Serviço', headerTintColor: theme.colors.primary }} 
+        />
+
         {/* Detalhe de Peça */}
         <Stack.Screen
           name="DetalhePecas"
