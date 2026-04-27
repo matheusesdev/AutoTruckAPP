@@ -1,40 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  RefreshControl,
-  StyleSheet
-} from 'react-native';
-import api from '../services/api';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { theme } from '../utils/theme';
-import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
 
+/* Adicionamos o { navigation } como parâmetro da função */
 export default function VeiculosScreen({ navigation }) {
-  const [veiculos, setVeiculos] = useState([]);
-  const [refreshing, setRefreshing] = useState(false);
-
-  async function load() {
-    const res = await api.get('/vehicles');
-    setVeiculos(res.data);
-  }
-
-  useFocusEffect(
-  useCallback(() => {
-    load();
-  }, [])
-);
-
-  async function onRefresh() {
-    setRefreshing(true);
-    await load();
-    setRefreshing(false);
-  }
-
   return (
     <View style={styles.container}>
+<<<<<<< HEAD
       {veiculos.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.text}>🚚</Text>
@@ -64,27 +36,44 @@ export default function VeiculosScreen({ navigation }) {
           )}
         />
       )}
+=======
+      <Text style={styles.text}>Meus Veículos</Text>
+>>>>>>> c404ef885a592b2223d089f9aa44ebf2937faf13
 
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => navigation.navigate('Cadastro')}
+      {/* Botão de Agendar */}
+      <TouchableOpacity 
+        style={styles.button} 
+        onPress={() => navigation.navigate('Agendar')}
       >
-        <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
+        <Text style={styles.buttonText}>Agendar Novo Serviço</Text>
+      </TouchableOpacity> 
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: theme.colors.background },
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  text: { fontSize: 16 },
-  link: { color: '#E87722', marginTop: 10 },
-  card: { backgroundColor: '#fff', padding: 12, borderRadius: 10, marginBottom: 10 },
-  title: { fontWeight: 'bold' },
-  badge: { backgroundColor: '#007BFF', padding: 5, borderRadius: 5, alignSelf: 'flex-start', marginTop: 5 },
-  badgeText: { color: '#fff' },
-  info: { fontSize: 12, marginTop: 5 },
-  fab: { position: 'absolute', bottom: 20, right: 20, backgroundColor: '#E87722', padding: 20, borderRadius: 50 },
-  fabText: { color: '#fff', fontSize: 20 }
+  container: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    backgroundColor: theme.colors.background 
+  },
+  text: { 
+    fontSize: 20, 
+    fontWeight: 'bold', 
+    color: theme.colors.primary,
+    marginBottom: 20 /* Espaço para o botão não ficar colado */
+  },
+  button: {
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 8,
+    elevation: 2 /* Sombra leve no Android */
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600'
+  }
 });
