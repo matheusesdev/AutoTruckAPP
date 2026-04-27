@@ -1,200 +1,164 @@
-// src/screens/PecasScreen.js
-// AT-11 + AT-12 + AT-16 — Catálogo de Peças com filtro, busca e suporte offline
- 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  View,
-  Text,
-  FlatList,
-  TextInput,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-  Dimensions,
-  ActivityIndicator,
-  Platform,
-  Modal,
-  ScrollView,
+  View, Text, FlatList, TextInput, Image,
+  TouchableOpacity, StyleSheet, Animated,
+  Dimensions, ActivityIndicator, Platform,
+  Modal, ScrollView,
 } from 'react-native';
 import { theme } from '../utils/theme';
 import { fetchParts, fetchVehicles } from '../services/api';
 import { salvarCache, carregarCache } from '../utils/cache';
 import { useConectividade } from '../hooks/useConectividade';
  
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
-const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/300x200/1B3A6B/FFFFFF?text=AutoTruck';
+const CARD_WIDTH = (Dimensions.get('window').width - 48) / 2;
+const PLACEHOLDER = 'https://via.placeholder.com/300x200/1B3A6B/FFFFFF?text=AutoTruck';
 const CACHE_KEY = 'pecas_catalogo';
  
-// ─── Skeleton Card ────────────────────────────────────────────────────────────
-const SkeletonCard = ({ pulseAnim }) => (
-  <Animated.View style={[styles.card, { opacity: pulseAnim }]}>
-    <View style={styles.skeletonImage} />
-    <View style={styles.cardBody}>
-      <View style={[styles.skeletonLine, { width: '90%', marginBottom: 6 }]} />
-      <View style={[styles.skeletonLine, { width: '60%', marginBottom: 12 }]} />
-      <View style={[styles.skeletonLine, { width: '40%', height: 20, borderRadius: 10 }]} />
-    </View>
-  </Animated.View>
-);
- 
-// ─── Part Card ────────────────────────────────────────────────────────────────
-const PartCard = ({ item, onPress }) => {
-  const imageUri = item.foto_url || PLACEHOLDER_IMAGE;
-  const formattedPrice = Number(item.preco).toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
+// ─── Card de peça ─────────────────────────────────────────────────────────────
+function PartCard({ item, onPress }) {
+  const preco = Number(item.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
  
   return (
     <TouchableOpacity style={styles.card} onPress={() => onPress(item)} activeOpacity={0.85}>
-      <Image source={{ uri: imageUri }} style={styles.cardImage} resizeMode="cover" />
+      <Image source={{ uri: item.foto_url || PLACEHOLDER }} style={styles.cardImage} resizeMode="cover" />
       <View style={styles.cardBody}>
         <Text style={styles.cardName} numberOfLines={2}>{item.nome}</Text>
-        <Text style={styles.cardPrice}>{formattedPrice}</Text>
-        <View style={[styles.badge, item.disponivel ? styles.badgeAvailable : styles.badgeUnavailable]}>
-          <Text style={[styles.badgeText, item.disponivel ? styles.badgeTextAvailable : styles.badgeTextUnavailable]}>
+        <Text style={styles.cardPrice}>{preco}</Text>
+        <View style={[styles.badge, item.disponivel ? styles.badgeGreen : styles.badgeRed]}>
+          <Text style={[styles.badgeText, item.disponivel ? styles.badgeTextGreen : styles.badgeTextRed]}>
             {item.disponivel ? 'Disponível' : 'Esgotado'}
           </Text>
         </View>
       </View>
     </TouchableOpacity>
   );
-};
+}
  
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+function SkeletonCard({ opacity }) {
+  return (
+    <Animated.View style={[styles.card, { opacity }]}>
+      <View style={styles.skeletonImage} />
+      <View style={styles.cardBody}>
+        <View style={[styles.skeletonLine, { width: '90%' }]} />
+        <View style={[styles.skeletonLine, { width: '60%' }]} />
+        <View style={[styles.skeletonLine, { width: '40%', height: 20, borderRadius: 10 }]} />
+      </View>
+    </Animated.View>
+  );
+}
+ 
+// ─── Tela principal ───────────────────────────────────────────────────────────
 export default function PecasScreen({ navigation }) {
   const { temInternet } = useConectividade();
  
   const [parts, setParts] = useState([]);
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(true);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
-  const [isOffline, setIsOffline] = useState(false);
-  const [cacheDate, setCacheDate] = useState(null);
-  const [noCache, setNoCache] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(true);
  
-  // Veículos para o seletor
-  const [vehicles, setVehicles] = useState([]);
-  const [selectedVehicle, setSelectedVehicle] = useState(null);
-  const [showVehicleModal, setShowVehicleModal] = useState(false);
-  const [loadingVehicles, setLoadingVehicles] = useState(false);
+  const [search, setSearch] = useState('');
+  const [searchAtivo, setSearchAtivo] = useState('');
+ 
+  const [veiculos, setVeiculos] = useState([]);
+  const [veiculoSelecionado, setVeiculoSelecionado] = useState(null);
+  const [modalAberto, setModalAberto] = useState(false);
+  const [loadingVeiculos, setLoadingVeiculos] = useState(false);
+ 
+  const [offline, setOffline] = useState(false);
+  const [cacheData, setCacheData] = useState(null);
+  const [semCache, setSemCache] = useState(false);
  
   const pulseAnim = useRef(new Animated.Value(0.4)).current;
-  const searchTimeout = useRef(null);
+  const searchTimer = useRef(null);
+  const internetAnterior = useRef(temInternet);
  
-  // Guarda o valor anterior de temInternet para detectar reconexão
-  const prevTemInternet = useRef(temInternet);
- 
-  // Animação do skeleton
+  // Animação skeleton
   useEffect(() => {
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 0.4, duration: 700, useNativeDriver: true }),
-      ])
-    );
-    pulse.start();
-    return () => pulse.stop();
-  }, [pulseAnim]);
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+      Animated.timing(pulseAnim, { toValue: 0.4, duration: 700, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, []);
  
   // Debounce da busca
   useEffect(() => {
-    if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => {
-      setDebouncedSearch(search);
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      setSearchAtivo(search);
       setPage(1);
       setParts([]);
-      setHasNextPage(true);
     }, 400);
-    return () => clearTimeout(searchTimeout.current);
+    return () => clearTimeout(searchTimer.current);
   }, [search]);
  
-  // Reconexão: atualiza automaticamente quando volta a internet
+  // Reconectar → recarrega
   useEffect(() => {
-    if (!prevTemInternet.current && temInternet) {
-      // Voltou a internet — recarrega da API
-      setPage(1);
-      setParts([]);
-      setHasNextPage(true);
-      loadParts(1, true);
+    if (!internetAnterior.current && temInternet) {
+      carregarPecas(1, true);
     }
-    prevTemInternet.current = temInternet;
+    internetAnterior.current = temInternet;
   }, [temInternet]);
  
-  // Carregar veículos
-  const loadVehicles = async () => {
-    setLoadingVehicles(true);
-    try {
-      const result = await fetchVehicles();
-      setVehicles(Array.isArray(result) ? result : result.data || []);
-    } catch {
-      setVehicles([]);
-    } finally {
-      setLoadingVehicles(false);
-    }
-  };
+  // Carrega quando muda busca ou veículo
+  useEffect(() => {
+    carregarPecas(1, true);
+  }, [searchAtivo, veiculoSelecionado]);
  
-  // Carregar peças — online ou do cache
-  const loadParts = useCallback(async (pageNum, reset = false) => {
+  async function carregarPecas(pageNum = 1, reset = false) {
     if (pageNum === 1) setLoading(true);
     else setLoadingMore(true);
     setError(null);
-    setNoCache(false);
+    setSemCache(false);
  
-    // ── SEM INTERNET ──────────────────────────────────────────────────────────
+    // Sem internet — tenta cache
     if (!temInternet) {
-      setIsOffline(true);
-      const cached = await carregarCache(CACHE_KEY);
- 
-      if (cached) {
-        setParts(cached.data || cached);
-        setCacheDate(cached.savedAt || null);
-        setHasNextPage(false); // cache não tem paginação
+      setOffline(true);
+      const cache = await carregarCache(CACHE_KEY);
+      if (cache) {
+        setParts(cache.data);
+        setCacheData(cache.savedAt);
       } else {
         setParts([]);
-        setNoCache(true);
+        setSemCache(true);
       }
- 
       setLoading(false);
       setLoadingMore(false);
       return;
     }
  
-    // ── COM INTERNET ──────────────────────────────────────────────────────────
-    setIsOffline(false);
+    // Com internet — busca API
+    setOffline(false);
     try {
-      const result = await fetchParts({
-        search: debouncedSearch,
+      const resultado = await fetchParts({
+        search: searchAtivo,
         page: pageNum,
         limit: 20,
-        veiculo_id: selectedVehicle?.id || null,
+        veiculo_id: veiculoSelecionado?.id || null,
       });
  
-      const newParts = reset || pageNum === 1 ? result.data : [...parts, ...result.data];
-      setParts(newParts);
-      setHasNextPage(result.meta.hasNextPage);
- 
-      // Salva no cache apenas a primeira página sem filtros (dados gerais)
-      if (pageNum === 1 && !selectedVehicle && !debouncedSearch) {
-        await salvarCache(CACHE_KEY, {
-          data: result.data,
-          savedAt: new Date().toISOString(),
-        });
+      if (reset || pageNum === 1) {
+        setParts(resultado.data);
+      } else {
+        setParts(prev => [...prev, ...resultado.data]);
       }
-    } catch {
-      // Falha na API — tenta o cache como fallback
-      const cached = await carregarCache(CACHE_KEY);
-      if (cached) {
-        setParts(cached.data || cached);
-        setCacheDate(cached.savedAt || null);
-        setIsOffline(true);
-        setHasNextPage(false);
+      setHasNextPage(resultado.meta.hasNextPage);
+ 
+      // Salva cache só na primeira página sem filtros
+      if (pageNum === 1 && !searchAtivo && !veiculoSelecionado) {
+        await salvarCache(CACHE_KEY, { data: resultado.data, savedAt: new Date().toISOString() });
+      }
+    } catch (e) {
+      // Falhou — tenta cache como fallback
+      const cache = await carregarCache(CACHE_KEY);
+      if (cache) {
+        setParts(cache.data);
+        setCacheData(cache.savedAt);
+        setOffline(true);
       } else {
         setError('Erro ao carregar peças. Tente novamente.');
       }
@@ -202,189 +166,147 @@ export default function PecasScreen({ navigation }) {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [debouncedSearch, selectedVehicle, temInternet]);
+  }
  
-  useEffect(() => {
-    loadParts(1, true);
-  }, [loadParts]);
- 
-  const handleLoadMore = () => {
-    if (!loadingMore && hasNextPage && !loading && !isOffline) {
+  function handleLoadMore() {
+    if (!loadingMore && hasNextPage && !loading && !offline) {
       const next = page + 1;
       setPage(next);
-      loadParts(next);
+      carregarPecas(next);
     }
-  };
+  }
  
-  const handleCardPress = (item) => {
-    navigation.navigate('DetalhePeca', { partId: item.id });
-  };
- 
-  const handleOpenVehicleModal = () => {
-    loadVehicles();
-    setShowVehicleModal(true);
-  };
- 
-  const handleSelectVehicle = (vehicle) => {
-    setSelectedVehicle(vehicle);
-    setShowVehicleModal(false);
-    setPage(1);
-    setParts([]);
-    setHasNextPage(true);
-  };
- 
-  const handleClearVehicle = () => {
-    setSelectedVehicle(null);
-    setPage(1);
-    setParts([]);
-    setHasNextPage(true);
-  };
- 
-  // Formata a data do cache em pt-BR
-  const formatCacheDate = (isoDate) => {
-    if (!isoDate) return 'data desconhecida';
+  async function abrirModal() {
+    setModalAberto(true);
+    setLoadingVeiculos(true);
     try {
-      return new Date(isoDate).toLocaleString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      const res = await fetchVehicles();
+      setVeiculos(Array.isArray(res) ? res : res.data || []);
     } catch {
-      return 'data desconhecida';
+      setVeiculos([]);
+    } finally {
+      setLoadingVeiculos(false);
     }
-  };
+  }
  
-  const vehicleLabel = selectedVehicle
-    ? `${selectedVehicle.marca} ${selectedVehicle.modelo} ${selectedVehicle.ano}`
-    : 'Todos os veículos';
+  function selecionarVeiculo(v) {
+    setVeiculoSelecionado(v);
+    setModalAberto(false);
+    setParts([]);
+    setPage(1);
+  }
  
-  const renderFooter = () => {
-    if (!loadingMore) return <View style={{ height: 24 }} />;
-    return (
-      <View style={styles.loadingFooter}>
-        <ActivityIndicator color={theme.colors.accent} size="small" />
-        <Text style={styles.loadingText}>Carregando mais peças...</Text>
+  function formatarData(iso) {
+    if (!iso) return 'data desconhecida';
+    return new Date(iso).toLocaleString('pt-BR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  }
+ 
+  function renderEmpty() {
+    if (semCache) return (
+      <View style={styles.centro}>
+        <Text style={styles.emptyIcon}>📡</Text>
+        <Text style={styles.emptyTitulo}>Sem conexão</Text>
+        <Text style={styles.emptySub}>Conecte à internet para ver o catálogo.</Text>
       </View>
     );
-  };
  
-  const renderEmpty = () => {
-    // Sem cache e sem internet
-    if (noCache) {
-      return (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>📡</Text>
-          <Text style={styles.emptyTitle}>Sem conexão</Text>
-          <Text style={styles.emptySubtitle}>
-            Conecte à internet para ver o catálogo.
-          </Text>
-        </View>
-      );
-    }
- 
-    // Filtro de veículo sem resultados
-    if (selectedVehicle) {
-      return (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>🔍</Text>
-          <Text style={styles.emptyTitle}>
-            Nenhuma peça compatível com{'\n'}
-            {selectedVehicle.marca} {selectedVehicle.modelo} {selectedVehicle.ano}
-          </Text>
-          <TouchableOpacity
-            style={styles.orcamentoButton}
-            onPress={() => navigation.navigate('SolicitarOrcamento')}
-          >
-            <Text style={styles.orcamentoButtonText}>Solicitar orçamento para esta peça</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
+    if (veiculoSelecionado) return (
+      <View style={styles.centro}>
+        <Text style={styles.emptyIcon}>🔍</Text>
+        <Text style={styles.emptyTitulo}>
+          Nenhuma peça compatível com{'\n'}
+          {veiculoSelecionado.marca} {veiculoSelecionado.modelo} {veiculoSelecionado.ano}
+        </Text>
+        <TouchableOpacity style={styles.btnLaranja} onPress={() => navigation.navigate('SolicitarOrcamento')}>
+          <Text style={styles.btnLaranjaText}>Solicitar orçamento para esta peça</Text>
+        </TouchableOpacity>
+      </View>
+    );
  
     return (
-      <View style={styles.emptyContainer}>
+      <View style={styles.centro}>
         <Text style={styles.emptyIcon}>🔩</Text>
-        <Text style={styles.emptyTitle}>Nenhuma peça encontrada</Text>
+        <Text style={styles.emptyTitulo}>Nenhuma peça encontrada</Text>
         <Text style={styles.emptySubtitle}>Tente buscar por outro termo.</Text>
       </View>
     );
-  };
+  }
  
   return (
     <View style={styles.container}>
-      {/* Header */}
+ 
+      {/* Cabeçalho */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Catálogo de Peças</Text>
+        <Text style={styles.headerTitulo}>Catálogo de Peças</Text>
       </View>
  
       {/* Banner offline */}
-      {isOffline && !noCache && (
-        <View style={styles.offlineBanner}>
-          <Text style={styles.offlineBannerText}>
-            ⚠️ Exibindo peças salvas · Última atualização: {formatCacheDate(cacheDate)}
+      {offline && !semCache && (
+        <View style={styles.bannerOffline}>
+          <Text style={styles.bannerOfflineText}>
+            ⚠️ Exibindo peças salvas · Última atualização: {formatarData(cacheData)}
           </Text>
         </View>
       )}
  
-      {/* Busca — só exibe com internet */}
-      {!isOffline && (
-        <View style={styles.searchWrapper}>
-          <View style={styles.searchContainer}>
-            <Text style={styles.searchIcon}>🔍</Text>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar peça..."
-              placeholderTextColor={theme.colors.disabledText}
-              value={search}
-              onChangeText={setSearch}
-              returnKeyType="search"
-              autoCorrect={false}
-            />
-            {search.length > 0 && (
-              <TouchableOpacity onPress={() => setSearch('')}>
-                <Text style={styles.clearIcon}>✕</Text>
-              </TouchableOpacity>
+      {/* Busca e seletor — ocultos offline */}
+      {!offline && (
+        <>
+          <View style={styles.buscaWrapper}>
+            <View style={styles.buscaContainer}>
+              <Text>🔍 </Text>
+              <TextInput
+                style={styles.buscaInput}
+                placeholder="Buscar peça..."
+                placeholderTextColor={theme.colors.disabledText}
+                value={search}
+                onChangeText={setSearch}
+                autoCorrect={false}
+              />
+              {search.length > 0 && (
+                <TouchableOpacity onPress={() => setSearch('')}>
+                  <Text style={styles.clearBtn}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {searchAtivo.length > 0 && (
+              <Text style={styles.buscandoText}>Buscando por '{searchAtivo}'...</Text>
             )}
           </View>
-          {debouncedSearch.length > 0 && (
-            <Text style={styles.searchingText}>
-              Buscando por '{debouncedSearch}'...
-            </Text>
-          )}
-        </View>
-      )}
  
-      {/* Seletor de veículo — só exibe com internet */}
-      {!isOffline && (
-        <TouchableOpacity style={styles.vehicleSelector} onPress={handleOpenVehicleModal} activeOpacity={0.8}>
-          <Text style={styles.vehicleSelectorIcon}>🚛</Text>
-          <Text style={[styles.vehicleSelectorText, selectedVehicle && styles.vehicleSelectorTextActive]}>
-            {vehicleLabel}
-          </Text>
-          <Text style={styles.vehicleSelectorArrow}>▾</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.seletorVeiculo} onPress={abrirModal} activeOpacity={0.8}>
+            <Text>🚛 </Text>
+            <Text style={[styles.seletorTexto, veiculoSelecionado && styles.seletorTextoAtivo]}>
+              {veiculoSelecionado
+                ? `${veiculoSelecionado.marca} ${veiculoSelecionado.modelo} ${veiculoSelecionado.ano}`
+                : 'Todos os veículos'}
+            </Text>
+            <Text style={styles.seletorSeta}>▾</Text>
+          </TouchableOpacity>
+        </>
       )}
  
       {/* Banner veículo selecionado */}
-      {selectedVehicle && !isOffline && (
-        <View style={styles.vehicleBanner}>
-          <Text style={styles.vehicleBannerText}>
-            🔧 Peças para {selectedVehicle.marca} {selectedVehicle.modelo} {selectedVehicle.ano}
+      {veiculoSelecionado && !offline && (
+        <View style={styles.bannerVeiculo}>
+          <Text style={styles.bannerVeiculoText}>
+            🔧 Peças para {veiculoSelecionado.marca} {veiculoSelecionado.modelo} {veiculoSelecionado.ano}
           </Text>
-          <TouchableOpacity onPress={handleClearVehicle}>
-            <Text style={styles.vehicleBannerClose}>✕</Text>
+          <TouchableOpacity onPress={() => selecionarVeiculo(null)}>
+            <Text style={styles.bannerVeiculoX}>✕</Text>
           </TouchableOpacity>
         </View>
       )}
  
       {/* Erro */}
       {error && !loading && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>⚠️ {error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => loadParts(1, true)}>
-            <Text style={styles.retryText}>Tentar novamente</Text>
+        <View style={styles.erroBox}>
+          <Text style={styles.erroText}>⚠️ {error}</Text>
+          <TouchableOpacity style={styles.btnLaranja} onPress={() => carregarPecas(1, true)}>
+            <Text style={styles.btnLaranjaText}>Tentar novamente</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -392,9 +314,7 @@ export default function PecasScreen({ navigation }) {
       {/* Skeleton */}
       {loading && !error && (
         <View style={styles.grid}>
-          {[...Array(6)].map((_, i) => (
-            <SkeletonCard key={i} pulseAnim={pulseAnim} />
-          ))}
+          {[...Array(6)].map((_, i) => <SkeletonCard key={i} opacity={pulseAnim} />)}
         </View>
       )}
  
@@ -402,78 +322,65 @@ export default function PecasScreen({ navigation }) {
       {!loading && !error && (
         <FlatList
           data={parts}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={({ item }) => <PartCard item={item} onPress={handleCardPress} />}
+          keyExtractor={item => String(item.id)}
+          renderItem={({ item }) => <PartCard item={item} onPress={item => navigation.navigate('DetalhePeca', { partId: item.id })} />}
           numColumns={2}
-          contentContainerStyle={styles.listContent}
-          columnWrapperStyle={styles.columnWrapper}
+          contentContainerStyle={styles.listaContent}
+          columnWrapperStyle={styles.coluna}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.4}
-          ListFooterComponent={renderFooter}
-          ListEmptyComponent={renderEmpty}
           showsVerticalScrollIndicator={false}
+          ListFooterComponent={loadingMore ? <ActivityIndicator color={theme.colors.accent} style={{ marginVertical: 16 }} /> : <View style={{ height: 24 }} />}
+          ListEmptyComponent={renderEmpty}
         />
       )}
  
-      {/* Modal seletor de veículo */}
-      <Modal
-        visible={showVehicleModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowVehicleModal(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowVehicleModal(false)}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Selecionar Veículo</Text>
-              <TouchableOpacity onPress={() => setShowVehicleModal(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+      {/* Modal de veículos */}
+      <Modal visible={modalAberto} transparent animationType="slide" onRequestClose={() => setModalAberto(false)}>
+        <TouchableOpacity style={styles.modalFundo} activeOpacity={1} onPress={() => setModalAberto(false)}>
+          <View style={styles.modalBox}>
+            <View style={styles.modalTopo}>
+              <Text style={styles.modalTitulo}>Selecionar Veículo</Text>
+              <TouchableOpacity onPress={() => setModalAberto(false)}>
+                <Text style={styles.modalFechar}>✕</Text>
               </TouchableOpacity>
             </View>
  
-            {loadingVehicles ? (
-              <View style={styles.modalLoading}>
-                <ActivityIndicator color={theme.colors.primary} />
-                <Text style={styles.modalLoadingText}>Carregando veículos...</Text>
-              </View>
+            {loadingVeiculos ? (
+              <ActivityIndicator color={theme.colors.primary} style={{ marginVertical: 32 }} />
             ) : (
               <ScrollView>
+                {/* Opção todos */}
                 <TouchableOpacity
-                  style={[styles.vehicleOption, !selectedVehicle && styles.vehicleOptionSelected]}
-                  onPress={() => handleSelectVehicle(null)}
+                  style={[styles.opcaoVeiculo, !veiculoSelecionado && styles.opcaoAtiva]}
+                  onPress={() => selecionarVeiculo(null)}
                 >
-                  <Text style={[styles.vehicleOptionText, !selectedVehicle && styles.vehicleOptionTextSelected]}>
+                  <Text style={[styles.opcaoTexto, !veiculoSelecionado && styles.opcaoTextoAtivo]}>
                     Todos os veículos
                   </Text>
-                  {!selectedVehicle && <Text style={styles.vehicleOptionCheck}>✓</Text>}
+                  {!veiculoSelecionado && <Text style={styles.check}>✓</Text>}
                 </TouchableOpacity>
  
-                {vehicles.length === 0 && (
-                  <View style={styles.modalEmpty}>
-                    <Text style={styles.modalEmptyText}>Nenhum veículo cadastrado.</Text>
-                    <Text style={styles.modalEmptySubtext}>Cadastre um veículo na aba Veículos.</Text>
+                {veiculos.length === 0 && (
+                  <View style={styles.centro}>
+                    <Text style={styles.emptySubtitle}>Nenhum veículo cadastrado.</Text>
+                    <Text style={styles.emptySubtitle}>Cadastre na aba Veículos.</Text>
                   </View>
                 )}
  
-                {vehicles.map((v) => (
+                {veiculos.map(v => (
                   <TouchableOpacity
                     key={v.id}
-                    style={[styles.vehicleOption, selectedVehicle?.id === v.id && styles.vehicleOptionSelected]}
-                    onPress={() => handleSelectVehicle(v)}
+                    style={[styles.opcaoVeiculo, veiculoSelecionado?.id === v.id && styles.opcaoAtiva]}
+                    onPress={() => selecionarVeiculo(v)}
                   >
                     <View>
-                      <Text style={[styles.vehicleOptionText, selectedVehicle?.id === v.id && styles.vehicleOptionTextSelected]}>
+                      <Text style={[styles.opcaoTexto, veiculoSelecionado?.id === v.id && styles.opcaoTextoAtivo]}>
                         {v.marca} {v.modelo} {v.ano}
                       </Text>
-                      <Text style={styles.vehicleOptionPlate}>{v.placa}</Text>
+                      <Text style={styles.opcaoPlaca}>{v.placa}</Text>
                     </View>
-                    {selectedVehicle?.id === v.id && (
-                      <Text style={styles.vehicleOptionCheck}>✓</Text>
-                    )}
+                    {veiculoSelecionado?.id === v.id && <Text style={styles.check}>✓</Text>}
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -481,55 +388,40 @@ export default function PecasScreen({ navigation }) {
           </View>
         </TouchableOpacity>
       </Modal>
+ 
     </View>
   );
 }
  
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─── Estilos ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
+  container: { flex: 1, backgroundColor: theme.colors.background },
  
-  // Header
   header: {
     paddingTop: Platform.OS === 'ios' ? 56 : 48,
     paddingBottom: 12,
     paddingHorizontal: 16,
     backgroundColor: theme.colors.primary,
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
+  headerTitulo: { fontSize: 22, fontWeight: '800', color: '#FFF' },
  
-  // Banner offline
-  offlineBanner: {
+  bannerOffline: {
     backgroundColor: '#FEF9C3',
     borderBottomWidth: 1,
     borderBottomColor: '#FDE68A',
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  offlineBannerText: {
-    fontSize: 12,
-    color: '#92400E',
-    fontWeight: '600',
-    textAlign: 'center',
-  },
+  bannerOfflineText: { fontSize: 12, color: '#92400E', fontWeight: '600', textAlign: 'center' },
  
-  // Busca
-  searchWrapper: {
+  buscaWrapper: {
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 8,
-    backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  searchContainer: {
+  buscaContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.inputBackground,
@@ -539,27 +431,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
-  searchIcon: { fontSize: 15, marginRight: 8 },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: theme.colors.text,
-    padding: 0,
-  },
-  clearIcon: {
-    fontSize: 13,
-    color: theme.colors.disabledText,
-    paddingLeft: 8,
-  },
-  searchingText: {
-    fontSize: 12,
-    color: theme.colors.disabledText,
-    marginTop: 6,
-    fontStyle: 'italic',
-  },
+  buscaInput: { flex: 1, fontSize: 15, color: theme.colors.text, padding: 0 },
+  clearBtn: { fontSize: 13, color: theme.colors.disabledText, paddingLeft: 8 },
+  buscandoText: { fontSize: 12, color: theme.colors.disabledText, marginTop: 6, fontStyle: 'italic' },
  
-  // Seletor de veículo
-  vehicleSelector: {
+  seletorVeiculo: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
@@ -567,25 +443,12 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.inputBackground,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
-    gap: 8,
   },
-  vehicleSelectorIcon: { fontSize: 16 },
-  vehicleSelectorText: {
-    flex: 1,
-    fontSize: 14,
-    color: theme.colors.disabledText,
-  },
-  vehicleSelectorTextActive: {
-    color: theme.colors.primary,
-    fontWeight: '600',
-  },
-  vehicleSelectorArrow: {
-    fontSize: 12,
-    color: theme.colors.disabledText,
-  },
+  seletorTexto: { flex: 1, fontSize: 14, color: theme.colors.disabledText },
+  seletorTextoAtivo: { color: theme.colors.primary, fontWeight: '600' },
+  seletorSeta: { fontSize: 12, color: theme.colors.disabledText },
  
-  // Banner veículo selecionado
-  vehicleBanner: {
+  bannerVeiculo: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -595,43 +458,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  vehicleBannerText: {
-    fontSize: 13,
-    color: '#1D4ED8',
-    fontWeight: '600',
-    flex: 1,
-  },
-  vehicleBannerClose: {
-    fontSize: 13,
-    color: '#1D4ED8',
-    paddingLeft: 12,
-    fontWeight: '700',
-  },
+  bannerVeiculoText: { fontSize: 13, color: '#1D4ED8', fontWeight: '600', flex: 1 },
+  bannerVeiculoX: { fontSize: 13, color: '#1D4ED8', paddingLeft: 12, fontWeight: '700' },
  
-  // Grid skeleton
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    gap: 16,
-  },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, paddingTop: 12, gap: 16 },
+  listaContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
+  coluna: { gap: 16, marginBottom: 16 },
  
-  // Lista
-  listContent: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 32,
-  },
-  columnWrapper: {
-    gap: 16,
-    marginBottom: 16,
-  },
- 
-  // Card
   card: {
     width: CARD_WIDTH,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFF',
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
@@ -642,207 +478,60 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  cardImage: {
-    width: '100%',
-    height: 110,
-    backgroundColor: theme.colors.inputBackground,
-  },
+  cardImage: { width: '100%', height: 110, backgroundColor: theme.colors.inputBackground },
   cardBody: { padding: 10 },
-  cardName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.text,
-    lineHeight: 18,
-    marginBottom: 6,
-  },
-  cardPrice: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: theme.colors.accent,
-    marginBottom: 8,
-  },
+  cardName: { fontSize: 13, fontWeight: '600', color: theme.colors.text, lineHeight: 18, marginBottom: 6 },
+  cardPrice: { fontSize: 15, fontWeight: '800', color: theme.colors.accent, marginBottom: 8 },
  
-  // Badge
-  badge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 20,
-  },
-  badgeAvailable: { backgroundColor: '#DCFCE7' },
-  badgeUnavailable: { backgroundColor: '#FEE2E2' },
+  badge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
+  badgeGreen: { backgroundColor: '#DCFCE7' },
+  badgeRed: { backgroundColor: '#FEE2E2' },
   badgeText: { fontSize: 11, fontWeight: '700' },
-  badgeTextAvailable: { color: '#16A34A' },
-  badgeTextUnavailable: { color: theme.colors.error },
+  badgeTextGreen: { color: '#16A34A' },
+  badgeTextRed: { color: theme.colors.error },
  
-  // Skeleton
-  skeletonImage: {
-    width: '100%',
-    height: 110,
-    backgroundColor: theme.colors.border,
-  },
-  skeletonLine: {
-    height: 13,
-    backgroundColor: theme.colors.border,
-    borderRadius: 6,
-    marginBottom: 8,
-  },
+  skeletonImage: { width: '100%', height: 110, backgroundColor: theme.colors.border },
+  skeletonLine: { height: 13, backgroundColor: theme.colors.border, borderRadius: 6, marginBottom: 8 },
  
-  // Footer loader
-  loadingFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-    gap: 10,
-  },
-  loadingText: {
-    color: theme.colors.disabledText,
-    fontSize: 13,
-  },
- 
-  // Empty
-  emptyContainer: {
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 32,
-  },
+  centro: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 },
   emptyIcon: { fontSize: 44, marginBottom: 14 },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: 16,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: theme.colors.disabledText,
-    textAlign: 'center',
-  },
-  orcamentoButton: {
-    backgroundColor: theme.colors.accent,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 10,
-    marginTop: 4,
-  },
-  orcamentoButtonText: {
-    color: '#FFF',
-    fontWeight: '700',
-    fontSize: 14,
-    textAlign: 'center',
-  },
+  emptyTitulo: { fontSize: 16, fontWeight: '700', color: theme.colors.text, marginBottom: 12, textAlign: 'center', lineHeight: 24 },
+  emptySubtitle: { fontSize: 14, color: theme.colors.disabledText, textAlign: 'center' },
+  emptySubtitle: { fontSize: 14, color: theme.colors.disabledText, textAlign: 'center' },
  
-  // Erro
-  errorContainer: {
-    margin: 16,
-    padding: 16,
-    backgroundColor: '#FEE2E2',
-    borderRadius: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  errorText: {
-    color: theme.colors.error,
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  retryButton: {
-    backgroundColor: theme.colors.accent,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  retryText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
+  btnLaranja: { backgroundColor: theme.colors.accent, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10, marginTop: 8 },
+  btnLaranjaText: { color: '#FFF', fontWeight: '700', fontSize: 14, textAlign: 'center' },
  
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
+  erroBox: {
+    margin: 16, padding: 16, backgroundColor: '#FEE2E2',
+    borderRadius: 10, alignItems: 'center', borderWidth: 1, borderColor: '#FECACA',
   },
-  modalContainer: {
+  erroText: { color: theme.colors.error, fontSize: 14, textAlign: 'center', marginBottom: 12 },
+ 
+  modalFundo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalBox: {
     backgroundColor: '#FFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '60%',
     paddingBottom: Platform.OS === 'ios' ? 32 : 16,
   },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+  modalTopo: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 16,
+    borderBottomWidth: 1, borderBottomColor: theme.colors.border,
   },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: theme.colors.text,
+  modalTitulo: { fontSize: 17, fontWeight: '700', color: theme.colors.text },
+  modalFechar: { fontSize: 16, color: theme.colors.disabledText, padding: 4 },
+ 
+  opcaoVeiculo: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: theme.colors.border,
   },
-  modalClose: {
-    fontSize: 16,
-    color: theme.colors.disabledText,
-    padding: 4,
-  },
-  modalLoading: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    gap: 12,
-  },
-  modalLoadingText: {
-    color: theme.colors.disabledText,
-    fontSize: 14,
-  },
-  modalEmpty: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    paddingHorizontal: 24,
-  },
-  modalEmptyText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: 6,
-  },
-  modalEmptySubtext: {
-    fontSize: 13,
-    color: theme.colors.disabledText,
-    textAlign: 'center',
-  },
-  vehicleOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  vehicleOptionSelected: { backgroundColor: '#EFF6FF' },
-  vehicleOptionText: {
-    fontSize: 15,
-    color: theme.colors.text,
-    fontWeight: '500',
-  },
-  vehicleOptionTextSelected: {
-    color: theme.colors.primary,
-    fontWeight: '700',
-  },
-  vehicleOptionPlate: {
-    fontSize: 12,
-    color: theme.colors.disabledText,
-    marginTop: 2,
-  },
-  vehicleOptionCheck: {
-    fontSize: 16,
-    color: theme.colors.primary,
-    fontWeight: '700',
-  },
+  opcaoAtiva: { backgroundColor: '#EFF6FF' },
+  opcaoTexto: { fontSize: 15, color: theme.colors.text, fontWeight: '500' },
+  opcaoTextoAtivo: { color: theme.colors.primary, fontWeight: '700' },
+  opcaoPlaca: { fontSize: 12, color: theme.colors.disabledText, marginTop: 2 },
+  check: { fontSize: 16, color: theme.colors.primary, fontWeight: '700' },
 });
