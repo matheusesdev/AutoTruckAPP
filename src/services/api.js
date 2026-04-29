@@ -4,7 +4,8 @@ import { Platform } from 'react-native';
 import { logoutAndRedirectToLogin } from './authSession';
 
 const API_BASE_URL =
-  Platform.OS === 'android' ? 'http://10.0.2.2:3001/api' : 'http://localhost:3001/api';
+  process.env.EXPO_PUBLIC_API_URL ||
+  (Platform.OS === 'android' ? 'http://10.0.2.2:3001/api' : 'http://localhost:3001/api');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
