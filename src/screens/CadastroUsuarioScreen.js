@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import api from '../services/api';
 import useUserStore from '../store/userStore';
 import { theme } from '../utils/theme';
 
@@ -38,23 +39,42 @@ export default function CadastroUsuarioScreen({ navigation }) {
 
     try {
       setLoading(true);
-      const usuario = {
+      const response = await api.post('/auth/register', {
         nome: nome.trim(),
         email: email.trim(),
         telefone: telefone.trim(),
+        password: senha,
+        tipo_usuario: 'cliente',
+      });
+
+      const usuario = response?.data?.user || response?.data?.usuario || response?.data;
+      const token =
+        response?.data?.access_token ||
+        response?.data?.token ||
+        `local_signup_${Date.now()}`;
+
+      const userData = {
+        ...usuario,
+        nome: usuario?.nome || nome.trim(),
+        email: usuario?.email || email.trim(),
+        telefone: usuario?.telefone || telefone.trim(),
       };
-      const token = `local_signup_${Date.now()}`;
 
       await AsyncStorage.setItem('access_token', token);
-      await AsyncStorage.setItem('user_data', JSON.stringify(usuario));
-      setAuthData({ token, user: usuario });
+      await AsyncStorage.setItem('user_data', JSON.stringify(userData));
+      setAuthData({ token, user: userData });
 
       navigation.reset({
         index: 0,
         routes: [{ name: 'MainTabs' }],
       });
     } catch (error) {
-      Alert.alert('Erro', 'Nao foi possivel salvar sua conta neste dispositivo.');
+      const rawMessage = error?.response?.data?.message;
+      const message = Array.isArray(rawMessage)
+        ? rawMessage.join('\n')
+        : rawMessage || error?.response?.data?.error || 'Nao foi possivel criar sua conta.';
+
+      Alert.alert('Erro', message);
     } finally {
       setLoading(false);
     }
