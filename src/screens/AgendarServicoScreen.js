@@ -24,6 +24,7 @@ const AgendarServicoScreen = ({ navigation }) => {
   const [horarioSelecionado, setHorarioSelecionado] = useState('');
   const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
   const [observacoes, setObservacoes] = useState('');
+  const hoje = new Date().toISOString().split('T')[0];
 
   const tipos = [
     'Troca de óleo', 'Revisão completa', 'Alinhamento', 
@@ -53,7 +54,7 @@ const AgendarServicoScreen = ({ navigation }) => {
       };
       await agendamentoService.criarAgendamento(payload);
       Alert.alert("Sucesso", "Agendamento realizado com sucesso!");
-      navigation.navigate('Servicos');
+      navigation.navigate('MainTabs', { screen: 'Serviços' });
     } catch (error) {
       Alert.alert("Erro", error);
     } finally {
@@ -92,7 +93,7 @@ const AgendarServicoScreen = ({ navigation }) => {
           </Picker>
 
           <Calendar
-            minDate={new Date().toISOString().split('T')}
+            minDate={hoje}
             onDayPress={day => carregarHorarios(day.dateString)}
             markedDates={{ [dataSelecionada]: { selected: true, selectedColor: 'orange' } }}
           />
@@ -123,7 +124,11 @@ const AgendarServicoScreen = ({ navigation }) => {
             onChangeText={setObservacoes}
           />
 
-          <TouchableOpacity style={styles.btnPrincipal} onPress={() => setPasso(3)} disabled={!horarioSelecionado}>
+          <TouchableOpacity
+            style={styles.btnPrincipal}
+            onPress={() => setPasso(3)}
+            disabled={!veiculoId || !dataSelecionada || !horarioSelecionado}
+          >
             <Text style={styles.btnTexto}>Revisar Agendamento</Text>
           </TouchableOpacity>
         </View>

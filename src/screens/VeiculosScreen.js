@@ -97,6 +97,13 @@ export default function VeiculosScreen({ navigation }) {
         {total} veículos cadastrados
       </Text>
 
+      <TouchableOpacity
+        style={styles.addButton}
+        onPress={() => navigation.navigate('CadastroVeiculo')}
+      >
+        <Text style={styles.addButtonText}>Cadastrar veiculo</Text>
+      </TouchableOpacity>
+
       <FlatList
         data={veiculos}
         keyExtractor={item => String(item.id)}
@@ -139,6 +146,16 @@ const styles = StyleSheet.create({
   input: { flex: 1, marginLeft: 10 },
 
   count: { marginVertical: 10, fontWeight: 'bold' },
+
+  addButton: {
+    backgroundColor: '#E87722',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 12
+  },
+
+  addButtonText: { color: '#fff', fontWeight: 'bold' },
 
   card: {
     backgroundColor: '#fff',

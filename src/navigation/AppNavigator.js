@@ -7,7 +7,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 
 import LoginScreen from '../screens/LoginScreen';
-import CadastroScreen from '../screens/CadastroScreen';
+import CadastroUsuarioScreen from '../screens/CadastroUsuarioScreen';
+import CadastroVeiculoScreen from '../screens/CadastroVeiculoScreen';
+import EsqueciSenhaScreen from '../screens/EsqueciSenhaScreen';
 import HomeScreen from '../screens/HomeScreen';
 import PecasScreen from '../screens/PecasScreen';
 import VeiculosScreen from '../screens/VeiculosScreen';
@@ -19,6 +21,7 @@ import AgendarServicoScreen from '../screens/AgendarServicoScreen';
 import DetalheServicoScreen from '../screens/DetalheServicoScreen';
 import { navigationRef } from './navigationService';
 import DetalhePecasScreen from '../screens/DetalhePecasScreen';
+import EditarVeiculoScreen from '../screens/EditarVeiculoScreen';
 import OrcamentosScreen from '../screens/OrcamentosScreen';
 import SolicitarOrcamentoScreen from '../screens/SolicitarOrcamentoScreen';
 
@@ -99,8 +102,20 @@ export default function AppNavigator() {
 
         <Stack.Screen 
           name="Cadastro" 
-          component={CadastroScreen} 
+          component={CadastroUsuarioScreen} 
           options={{ headerShown: false }} 
+        />
+
+        <Stack.Screen 
+          name="EsqueciSenha" 
+          component={EsqueciSenhaScreen} 
+          options={{ title: 'Recuperar senha', headerTintColor: theme.colors.primary }} 
+        />
+
+        <Stack.Screen 
+          name="CadastroVeiculo" 
+          component={CadastroVeiculoScreen} 
+          options={{ title: 'Cadastrar Veiculo', headerTintColor: theme.colors.primary }} 
         />
         
         <Stack.Screen 
@@ -124,15 +139,28 @@ export default function AppNavigator() {
 
         {/* Detalhe de Peça */}
         <Stack.Screen
+          name="DetalhePeca"
+          component={DetalhePecasScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
           name="DetalhePecas"
           component={DetalhePecasScreen}
           options={{ headerShown: false }}
         />
+
         <Stack.Screen
-  name="SolicitarOrcamento"
-  component={SolicitarOrcamentoScreen}
-  options={{ headerShown: false }}
-/>
+          name="EditarVeiculo"
+          component={EditarVeiculoScreen}
+          options={{ title: 'Editar Veiculo', headerTintColor: theme.colors.primary }}
+        />
+
+        <Stack.Screen
+          name="SolicitarOrcamento"
+          component={SolicitarOrcamentoScreen}
+          options={{ headerShown: false }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
