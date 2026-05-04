@@ -1,29 +1,37 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CommonActions } from '@react-navigation/native';
 
 import { navigationRef } from '../navigation/navigationService';
 import useUserStore from '../store/userStore';
 
 export async function logoutAndRedirectToLogin(navigation) {
-  await AsyncStorage.removeItem('access_token');
-  await AsyncStorage.removeItem('user_data');
+  await AsyncStorage.multiRemove(['access_token', 'user_data']);
 
   const clearAuthData = useUserStore.getState().clearAuthData;
   if (typeof clearAuthData === 'function') {
     clearAuthData();
   }
 
-  const resetAction = CommonActions.reset({
+  const resetState = {
     index: 0,
     routes: [{ name: 'Login' }],
-  });
+  };
 
-  if (navigation?.dispatch) {
-    navigation.dispatch(resetAction);
+  if (navigationRef.isReady()) {
+    navigationRef.resetRoot(resetState);
     return;
   }
 
-  if (navigationRef.isReady()) {
-    navigationRef.dispatch(resetAction);
+  let rootNavigation = navigation;
+  while (rootNavigation?.getParent?.()) {
+    rootNavigation = rootNavigation.getParent();
+  }
+
+  if (rootNavigation?.reset) {
+    rootNavigation.reset(resetState);
+    return;
+  }
+
+  if (rootNavigation?.navigate) {
+    rootNavigation.navigate('Login');
   }
 }
