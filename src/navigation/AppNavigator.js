@@ -10,6 +10,7 @@ import LoginScreen from '../screens/LoginScreen';
 import CadastroUsuarioScreen from '../screens/CadastroUsuarioScreen';
 import CadastroVeiculoScreen from '../screens/CadastroVeiculoScreen';
 import EsqueciSenhaScreen from '../screens/EsqueciSenhaScreen';
+import NovaSenhaScreen from '../screens/NovaSenhaScreen';
 import HomeScreen from '../screens/HomeScreen';
 import PecasScreen from '../screens/PecasScreen';
 import VeiculosScreen from '../screens/VeiculosScreen';
@@ -29,6 +30,15 @@ import { theme } from '../utils/theme';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
+
+const linking = {
+  prefixes: ['autotruck://', 'autotruck:///', 'http://localhost:8081', 'http://127.0.0.1:8081'],
+  config: {
+    screens: {
+      ResetSenha: 'reset-password',
+    },
+  },
+};
 
 function TabNavigator() {
   return (
@@ -92,7 +102,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} linking={linking}>
       <Stack.Navigator initialRouteName={initialRoute}>
         <Stack.Screen
           name="Login"
@@ -110,6 +120,12 @@ export default function AppNavigator() {
           name="EsqueciSenha" 
           component={EsqueciSenhaScreen} 
           options={{ title: 'Recuperar senha', headerTintColor: theme.colors.primary }} 
+        />
+
+        <Stack.Screen
+          name="ResetSenha"
+          component={NovaSenhaScreen}
+          options={{ title: 'Nova senha', headerTintColor: theme.colors.primary }}
         />
 
         <Stack.Screen 
