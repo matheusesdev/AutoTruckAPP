@@ -32,10 +32,36 @@ export default function CadastroUsuarioScreen({ navigation }) {
   const emailValido = email.trim().includes('@') && email.trim().includes('.');
   const senhaValida = senha.length >= 6;
   const senhasIguais = senha === confirmarSenha && confirmarSenha.length > 0;
-  const canSubmit = nome.trim() && emailValido && senhaValida && senhasIguais;
+  const telefonePreenchido = telefone.trim().length > 0;
+  const canSubmit =
+    nome.trim().length > 0 &&
+    emailValido &&
+    telefonePreenchido &&
+    senhaValida &&
+    senhasIguais;
 
   async function cadastrar() {
-    if (!canSubmit || loading) return;
+    if (loading) return;
+
+    if (!nome.trim() || !email.trim() || !telefone.trim() || !senha || !confirmarSenha) {
+      Alert.alert('Erro', 'Preencha nome completo, e-mail, telefone, senha e confirmacao de senha.');
+      return;
+    }
+
+    if (!emailValido) {
+      Alert.alert('Erro', 'Informe um e-mail valido.');
+      return;
+    }
+
+    if (!senhaValida) {
+      Alert.alert('Erro', 'A senha deve ter no minimo 6 caracteres.');
+      return;
+    }
+
+    if (!senhasIguais) {
+      Alert.alert('Erro', 'A confirmacao de senha deve ser igual a senha.');
+      return;
+    }
 
     try {
       setLoading(true);
