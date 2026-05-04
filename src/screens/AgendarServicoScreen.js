@@ -1,23 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
-import { Picker } from '@react-native-picker/picker'; // Certifique-se de ter instalado
+import { Picker } from '@react-native-picker/picker';
 import { agendamentoService } from '../services/api';
 
-// Configuração do calendário para PT-BR
+// Configuração do calendário para PT-BR.
 LocaleConfig.locales['pt-br'] = {
-  monthNames: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
-  dayNames: ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],
-  dayNamesShort: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],
-  today: 'Hoje'
+  monthNames: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
+  dayNames: ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'],
+  dayNamesShort: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
+  today: 'Hoje',
 };
 LocaleConfig.defaultLocale = 'pt-br';
 
 const AgendarServicoScreen = ({ navigation }) => {
   const [passo, setPasso] = useState(1);
   const [loading, setLoading] = useState(false);
-  
-  // Estados do Formulário
   const [tipoServico, setTipoServico] = useState('');
   const [veiculoId, setVeiculoId] = useState('');
   const [dataSelecionada, setDataSelecionada] = useState('');
@@ -27,14 +25,19 @@ const AgendarServicoScreen = ({ navigation }) => {
   const hoje = new Date().toISOString().split('T')[0];
 
   const tipos = [
-    'Troca de óleo', 'Revisão completa', 'Alinhamento', 
-    'Balanceamento', 'Freios', 'Suspensão', 'Elétrica', 'Outro'
+    'Troca de óleo',
+    'Revisão completa',
+    'Alinhamento',
+    'Balanceamento',
+    'Freios',
+    'Suspensão',
+    'Elétrica',
+    'Outro',
   ];
 
-  // Simulação de veículos (Aqui você usaria os dados que o Lucas integrou)
   const meusVeiculos = [
     { id: '1', nome: 'Nissan Sentra - ABC-1234' },
-    { id: '2', nome: 'Hyundai Creta - XYZ-5678' }
+    { id: '2', nome: 'Hyundai Creta - XYZ-5678' },
   ];
 
   const carregarHorarios = async (data) => {
@@ -50,13 +53,13 @@ const AgendarServicoScreen = ({ navigation }) => {
         tipo_servico: tipoServico,
         veiculo_id: veiculoId,
         data_agendada: `${dataSelecionada}T${horarioSelecionado}:00Z`,
-        observacoes
+        observacoes,
       };
       await agendamentoService.criarAgendamento(payload);
-      Alert.alert("Sucesso", "Agendamento realizado com sucesso!");
+      Alert.alert('Sucesso', 'Agendamento realizado com sucesso!');
       navigation.navigate('MainTabs', { screen: 'Serviços' });
     } catch (error) {
-      Alert.alert("Erro", error);
+      Alert.alert('Erro', error);
     } finally {
       setLoading(false);
     }
@@ -68,9 +71,9 @@ const AgendarServicoScreen = ({ navigation }) => {
         <View>
           <Text style={styles.titulo}>Que tipo de serviço precisa?</Text>
           <View style={styles.grid}>
-            {tipos.map(item => (
-              <TouchableOpacity 
-                key={item} 
+            {tipos.map((item) => (
+              <TouchableOpacity
+                key={item}
                 style={[styles.cardTipo, tipoServico === item && styles.cardAtivo]}
                 onPress={() => setTipoServico(item)}
               >
@@ -86,28 +89,28 @@ const AgendarServicoScreen = ({ navigation }) => {
 
       {passo === 2 && (
         <View>
-          <Text style={styles.label}>Selecione o Veículo</Text>
+          <Text style={styles.label}>Selecione o veículo</Text>
           <Picker selectedValue={veiculoId} onValueChange={(item) => setVeiculoId(item)}>
             <Picker.Item label="Selecione um veículo..." value="" />
-            {meusVeiculos.map(v => <Picker.Item key={v.id} label={v.nome} value={v.id} />)}
+            {meusVeiculos.map((v) => <Picker.Item key={v.id} label={v.nome} value={v.id} />)}
           </Picker>
 
           <Calendar
             minDate={hoje}
-            onDayPress={day => carregarHorarios(day.dateString)}
+            onDayPress={(day) => carregarHorarios(day.dateString)}
             markedDates={{ [dataSelecionada]: { selected: true, selectedColor: 'orange' } }}
           />
 
           {dataSelecionada ? (
             <View style={styles.horariosGrid}>
-              {['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'].map(h => (
-                <TouchableOpacity 
+              {['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'].map((h) => (
+                <TouchableOpacity
                   key={h}
                   disabled={!horariosDisponiveis.includes(h)}
                   style={[
-                    styles.btnHorario, 
+                    styles.btnHorario,
                     horarioSelecionado === h && styles.cardAtivo,
-                    !horariosDisponiveis.includes(h) && styles.btnDesativado
+                    !horariosDisponiveis.includes(h) && styles.btnDesativado,
                   ]}
                   onPress={() => setHorarioSelecionado(h)}
                 >
@@ -117,9 +120,10 @@ const AgendarServicoScreen = ({ navigation }) => {
             </View>
           ) : null}
 
-          <TextInput 
-            placeholder="Observações (opcional)" 
-            multiline numberOfLines={3} 
+          <TextInput
+            placeholder="Observações (opcional)"
+            multiline
+            numberOfLines={3}
             style={styles.input}
             onChangeText={setObservacoes}
           />
@@ -129,7 +133,7 @@ const AgendarServicoScreen = ({ navigation }) => {
             onPress={() => setPasso(3)}
             disabled={!veiculoId || !dataSelecionada || !horarioSelecionado}
           >
-            <Text style={styles.btnTexto}>Revisar Agendamento</Text>
+            <Text style={styles.btnTexto}>Revisar agendamento</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -141,9 +145,9 @@ const AgendarServicoScreen = ({ navigation }) => {
           <Text>Veículo ID: {veiculoId}</Text>
           <Text>Data: {dataSelecionada}</Text>
           <Text>Hora: {horarioSelecionado}</Text>
-          
+
           <TouchableOpacity style={styles.btnConfirmar} onPress={confirmarAgendamento}>
-            {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnTexto}>Confirmar Agendamento</Text>}
+            {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnTexto}>Confirmar agendamento</Text>}
           </TouchableOpacity>
         </View>
       )}
@@ -166,7 +170,7 @@ const styles = StyleSheet.create({
   btnDesativado: { backgroundColor: '#F5F5F5', opacity: 0.5 },
   input: { borderWidth: 1, borderColor: '#DDD', padding: 10, marginTop: 20, borderRadius: 5 },
   btnConfirmar: { backgroundColor: 'green', padding: 15, borderRadius: 8, marginTop: 20, alignItems: 'center' },
-  resumo: { padding: 20, backgroundColor: '#F9F9F9', borderRadius: 10 }
+  resumo: { padding: 20, backgroundColor: '#F9F9F9', borderRadius: 10 },
 });
 
 export default AgendarServicoScreen;

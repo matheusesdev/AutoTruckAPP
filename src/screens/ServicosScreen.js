@@ -46,10 +46,10 @@ const ServicosScreen = ({ navigation }) => {
           </View>
         </View>
         <Text>
-          Data: {dataAgendada.toLocaleDateString('pt-BR')} as{' '}
+          Data: {dataAgendada.toLocaleDateString('pt-BR')} às{' '}
           {dataAgendada.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
         </Text>
-        <Text>Veiculo ID: {item.veiculo_id}</Text>
+        <Text>Veículo ID: {item.veiculo_id}</Text>
       </View>
     );
   };
@@ -61,13 +61,13 @@ const ServicosScreen = ({ navigation }) => {
           style={[styles.tab, aba === 'proximos' && styles.tabAtiva]}
           onPress={() => setAba('proximos')}
         >
-          <Text>Proximos</Text>
+          <Text>Próximos</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, aba === 'historico' && styles.tabAtiva]}
           onPress={() => setAba('historico')}
         >
-          <Text>Historico</Text>
+          <Text>Histórico</Text>
         </TouchableOpacity>
       </View>
 
@@ -77,9 +77,9 @@ const ServicosScreen = ({ navigation }) => {
         renderItem={renderCard}
         ListEmptyComponent={
           <View style={styles.vazio}>
-            <Text>Nenhum servico encontrado.</Text>
+            <Text>Nenhum serviço encontrado.</Text>
             <TouchableOpacity style={styles.btnNovo} onPress={() => navigation.navigate('Agendar')}>
-              <Text style={styles.btnNovoText}>Agendar Agora</Text>
+              <Text style={styles.btnNovoText}>Agendar agora</Text>
             </TouchableOpacity>
           </View>
         }

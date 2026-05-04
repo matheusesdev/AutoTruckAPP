@@ -16,7 +16,7 @@ import { theme } from '../utils/theme';
 export default function PerfilScreen({ navigation }) {
   const authenticatedUser = useUserStore((state) => state.user);
   const [user, setUser] = useState({
-    nome: authenticatedUser?.nome || 'Usuario',
+    nome: authenticatedUser?.nome || 'Usuário',
     email: authenticatedUser?.email || '',
     telefone: authenticatedUser?.telefone || '',
     tipo: authenticatedUser?.tipo_usuario || 'cliente',
@@ -86,7 +86,7 @@ export default function PerfilScreen({ navigation }) {
 
       {isChanged && (
         <TouchableOpacity style={styles.button} onPress={handleSave}>
-          <Text style={styles.buttonText}>Salvar alteracoes</Text>
+          <Text style={styles.buttonText}>Salvar alterações</Text>
         </TouchableOpacity>
       )}
 

@@ -32,7 +32,7 @@ export default function CadastroVeiculoScreen({ navigation }) {
       motor,
     });
 
-    Alert.alert('Sucesso', 'Veiculo cadastrado!');
+    Alert.alert('Sucesso', 'Veículo cadastrado!');
     navigation.goBack();
   }
 
@@ -56,7 +56,7 @@ export default function CadastroVeiculoScreen({ navigation }) {
       </Picker>
 
       <TouchableOpacity style={styles.button} onPress={salvar}>
-        <Text style={styles.buttonText}>Salvar veiculo</Text>
+        <Text style={styles.buttonText}>Salvar veículo</Text>
       </TouchableOpacity>
     </View>
   );

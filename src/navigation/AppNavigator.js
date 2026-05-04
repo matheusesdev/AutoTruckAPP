@@ -17,7 +17,7 @@ import VeiculosScreen from '../screens/VeiculosScreen';
 import ServicosScreen from '../screens/ServicosScreen';
 import PerfilScreen from '../screens/PerfilScreen';
 
-// NOVOS IMPORTS: Telas que você criou para o Agendamento e Cancelamento
+// Telas de agendamento, detalhes e fluxos complementares.
 import AgendarServicoScreen from '../screens/AgendarServicoScreen';
 import DetalheServicoScreen from '../screens/DetalheServicoScreen';
 import { navigationRef } from './navigationService';
@@ -131,7 +131,7 @@ export default function AppNavigator() {
         <Stack.Screen 
           name="CadastroVeiculo" 
           component={CadastroVeiculoScreen} 
-          options={{ title: 'Cadastrar Veiculo', headerTintColor: theme.colors.primary }} 
+          options={{ title: 'Cadastrar veículo', headerTintColor: theme.colors.primary }} 
         />
         
         <Stack.Screen 
@@ -140,7 +140,7 @@ export default function AppNavigator() {
           options={{ headerShown: false }} 
         />
 
-        {/* PASSO 1: Registro das novas telas de Agendamento e Detalhes */}
+        {/* Registro das telas de agendamento e detalhes. */}
         <Stack.Screen 
           name="Agendar" 
           component={AgendarServicoScreen} 
@@ -150,10 +150,10 @@ export default function AppNavigator() {
         <Stack.Screen 
           name="DetalheServico" 
           component={DetalheServicoScreen} 
-          options={{ title: 'Detalhes do Serviço', headerTintColor: theme.colors.primary }} 
+          options={{ title: 'Detalhes do serviço', headerTintColor: theme.colors.primary }} 
         />
 
-        {/* Detalhe de Peça */}
+        {/* Detalhe de peça */}
         <Stack.Screen
           name="DetalhePeca"
           component={DetalhePecasScreen}
@@ -169,7 +169,7 @@ export default function AppNavigator() {
         <Stack.Screen
           name="EditarVeiculo"
           component={EditarVeiculoScreen}
-          options={{ title: 'Editar Veiculo', headerTintColor: theme.colors.primary }}
+          options={{ title: 'Editar veículo', headerTintColor: theme.colors.primary }}
         />
 
         <Stack.Screen

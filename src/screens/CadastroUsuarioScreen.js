@@ -44,22 +44,22 @@ export default function CadastroUsuarioScreen({ navigation }) {
     if (loading) return;
 
     if (!nome.trim() || !email.trim() || !telefone.trim() || !senha || !confirmarSenha) {
-      Alert.alert('Erro', 'Preencha nome completo, e-mail, telefone, senha e confirmacao de senha.');
+      Alert.alert('Erro', 'Preencha nome completo, e-mail, telefone, senha e confirmação de senha.');
       return;
     }
 
     if (!emailValido) {
-      Alert.alert('Erro', 'Informe um e-mail valido.');
+      Alert.alert('Erro', 'Informe um e-mail válido.');
       return;
     }
 
     if (!senhaValida) {
-      Alert.alert('Erro', 'A senha deve ter no minimo 6 caracteres.');
+      Alert.alert('Erro', 'A senha deve ter no mínimo 6 caracteres.');
       return;
     }
 
     if (!senhasIguais) {
-      Alert.alert('Erro', 'A confirmacao de senha deve ser igual a senha.');
+      Alert.alert('Erro', 'A confirmação de senha deve ser igual à senha.');
       return;
     }
 
@@ -98,7 +98,7 @@ export default function CadastroUsuarioScreen({ navigation }) {
       const rawMessage = error?.response?.data?.message;
       const message = Array.isArray(rawMessage)
         ? rawMessage.join('\n')
-        : rawMessage || error?.response?.data?.error || 'Nao foi possivel criar sua conta.';
+        : rawMessage || error?.response?.data?.error || 'Não foi possível criar sua conta.';
 
       Alert.alert('Erro', message);
     } finally {
@@ -158,7 +158,7 @@ export default function CadastroUsuarioScreen({ navigation }) {
             <View style={styles.passwordContainer}>
               <TextInput
                 style={styles.passwordInput}
-                placeholder="Minimo 6 caracteres"
+                placeholder="Mínimo de 6 caracteres"
                 secureTextEntry={!mostrarSenha}
                 value={senha}
                 onChangeText={setSenha}
@@ -203,7 +203,7 @@ export default function CadastroUsuarioScreen({ navigation }) {
             onPress={() => navigation.navigate('Login')}
             disabled={loading}
           >
-            <Text style={styles.loginLinkText}>Ja tem conta? Entrar</Text>
+            <Text style={styles.loginLinkText}>Já tem conta? Entrar</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

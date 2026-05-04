@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
-import { theme } from '../utils/theme';
 import { agendamentoService } from '../services/api';
 
-const DetalheServicoScreen = ({ route, navigation }) => {
+const DetalheServicoScreen = ({ route }) => {
   const { servico } = route.params;
   const [statusAtual, setStatusAtual] = useState(servico.status);
   const [loading, setLoading] = useState(false);
@@ -20,16 +19,16 @@ const DetalheServicoScreen = ({ route, navigation }) => {
 
   const handleCancelar = () => {
     Alert.alert(
-      "Cancelar agendamento?",
-      "Tem certeza que deseja cancelar? Esta ação não pode ser desfeita.",
+      'Cancelar agendamento?',
+      'Tem certeza de que deseja cancelar? Esta ação não pode ser desfeita.',
       [
-        { text: "Não, manter", style: "cancel" },
-        { 
-          text: "Sim, cancelar", 
-          style: "destructive",
-          onPress: confirmarCancelamento 
-        }
-      ]
+        { text: 'Não, manter', style: 'cancel' },
+        {
+          text: 'Sim, cancelar',
+          style: 'destructive',
+          onPress: confirmarCancelamento,
+        },
+      ],
     );
   };
 
@@ -38,9 +37,9 @@ const DetalheServicoScreen = ({ route, navigation }) => {
     try {
       await agendamentoService.cancelarAgendamento(servico.id);
       setStatusAtual('cancelado');
-      Alert.alert("Sucesso", "Agendamento cancelado com sucesso.");
+      Alert.alert('Sucesso', 'Agendamento cancelado com sucesso.');
     } catch (error) {
-      Alert.alert("Erro", error);
+      Alert.alert('Erro', error);
     } finally {
       setLoading(false);
     }
@@ -56,29 +55,31 @@ const DetalheServicoScreen = ({ route, navigation }) => {
       <View style={styles.cardInfo}>
         <Text style={styles.label}>Veículo</Text>
         <Text style={styles.valor}>{servico.veiculo_id}</Text>
-        
+
         <View style={styles.divisor} />
-        
-        <Text style={styles.label}>Data e Hora</Text>
+
+        <Text style={styles.label}>Data e hora</Text>
         <Text style={styles.valor}>{formatarDataCompleta(servico.data_agendada)}</Text>
-        
+
         <View style={styles.divisor} />
-        
+
         <Text style={styles.label}>Status</Text>
         <View style={[styles.badge, statusAtual === 'cancelado' && styles.badgeCancelado]}>
           <Text style={styles.badgeText}>{statusAtual.toUpperCase()}</Text>
         </View>
       </View>
 
-      <Text style={styles.sectionTitulo}>Progresso do Serviço</Text>
+      <Text style={styles.sectionTitulo}>Progresso do serviço</Text>
       <View style={styles.progressoContainer}>
         {etapas.map((etapa, index) => (
           <View key={etapa} style={styles.etapaWrapper}>
-            <View style={[
-              styles.ponto, 
-              index <= indiceEtapa && styles.pontoAtivo,
-              statusAtual === 'cancelado' && styles.pontoCancelado
-            ]} />
+            <View
+              style={[
+                styles.ponto,
+                index <= indiceEtapa && styles.pontoAtivo,
+                statusAtual === 'cancelado' && styles.pontoCancelado,
+              ]}
+            />
             <Text style={styles.etapaTexto}>{etapa}</Text>
           </View>
         ))}
@@ -113,7 +114,7 @@ const styles = StyleSheet.create({
   pontoCancelado: { backgroundColor: '#6c757d' },
   etapaTexto: { fontSize: 10, color: '#666', textAlign: 'center' },
   btnCancelar: { backgroundColor: '#dc3545', padding: 18, borderRadius: 10, alignItems: 'center', marginTop: 20 },
-  btnTexto: { color: '#FFF', fontWeight: 'bold', fontSize: 16 }
+  btnTexto: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
 });
 
 export default DetalheServicoScreen;

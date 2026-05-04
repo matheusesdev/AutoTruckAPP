@@ -41,7 +41,7 @@ export const agendamentoService = {
       const response = await api.get(`/services/slots-disponiveis?data=${data}`);
       return response.data;
     } catch (error) {
-      console.error('Erro ao buscar horarios', error);
+      console.error('Erro ao buscar horários', error);
       return ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
     }
   },
@@ -60,7 +60,7 @@ export const agendamentoService = {
       const response = await api.get('/services');
       return response.data;
     } catch (error) {
-      console.error('Erro ao listar servicos', error);
+      console.error('Erro ao listar serviços', error);
       return { proximosServicos: [], historicoServicos: [] };
     }
   },

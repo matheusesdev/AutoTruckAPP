@@ -7,15 +7,12 @@ export default function SolicitarOrcamentoScreen() {
   const isValid = descricao.length >= 20;
 
   const handleEnviar = () => {
-    Alert.alert(
-      "Sucesso",
-      "Solicitação enviada! Retornaremos em breve."
-    );
+    Alert.alert('Sucesso', 'Solicitação enviada! Retornaremos em breve.');
   };
 
   return (
     <View style={{ flex: 1, padding: 16 }}>
-      <Text style={{ fontSize: 20 }}>Solicitar Orçamento</Text>
+      <Text style={{ fontSize: 20 }}>Solicitar orçamento</Text>
 
       <TextInput
         multiline

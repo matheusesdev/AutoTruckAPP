@@ -29,17 +29,17 @@ export default function NovaSenhaScreen({ navigation, route }) {
     if (loading) return;
 
     if (!token.trim()) {
-      Alert.alert('Erro', 'Token de recuperacao ausente.');
+      Alert.alert('Erro', 'Token de recuperação ausente.');
       return;
     }
 
     if (!senhaValida) {
-      Alert.alert('Erro', 'A nova senha deve ter no minimo 6 caracteres.');
+      Alert.alert('Erro', 'A nova senha deve ter no mínimo 6 caracteres.');
       return;
     }
 
     if (!senhasIguais) {
-      Alert.alert('Erro', 'A confirmacao deve ser igual a nova senha.');
+      Alert.alert('Erro', 'A confirmação deve ser igual à nova senha.');
       return;
     }
 
@@ -64,7 +64,7 @@ export default function NovaSenhaScreen({ navigation, route }) {
       const message =
         error?.response?.data?.message ||
         error?.response?.data?.error ||
-        'Nao foi possivel redefinir sua senha.';
+        'Não foi possível redefinir sua senha.';
       Alert.alert('Erro', Array.isArray(message) ? message.join('\n') : message);
     } finally {
       setLoading(false);
@@ -100,7 +100,7 @@ export default function NovaSenhaScreen({ navigation, route }) {
           <Text style={styles.label}>Nova senha</Text>
           <TextInput
             style={styles.input}
-            placeholder="Minimo 6 caracteres"
+            placeholder="Mínimo de 6 caracteres"
             secureTextEntry
             value={senha}
             onChangeText={setSenha}

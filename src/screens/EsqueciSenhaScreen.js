@@ -31,13 +31,13 @@ export default function EsqueciSenhaScreen({ navigation }) {
         type: 'success',
         message:
           response?.data?.message ||
-          'Se o e-mail estiver cadastrado, enviaremos as instrucoes para recuperar sua senha.',
+          'Se o e-mail estiver cadastrado, enviaremos as instruções para recuperar sua senha.',
       });
     } catch (error) {
       const message =
         error?.response?.data?.message ||
         error?.response?.data?.error ||
-        'Nao foi possivel solicitar a recuperacao de senha.';
+        'Não foi possível solicitar a recuperação de senha.';
       setFeedback({
         type: 'error',
         message: Array.isArray(message) ? message.join('\n') : message,
@@ -56,7 +56,7 @@ export default function EsqueciSenhaScreen({ navigation }) {
         <View style={styles.content}>
           <Text style={styles.title}>Recuperar senha</Text>
           <Text style={styles.subtitle}>
-            Informe seu e-mail para receber as instrucoes de recuperacao.
+            Informe seu e-mail para receber as instruções de recuperação.
           </Text>
 
           <Text style={styles.label}>E-mail</Text>
@@ -102,7 +102,7 @@ export default function EsqueciSenhaScreen({ navigation }) {
             {loading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.buttonText}>Enviar instrucoes</Text>
+              <Text style={styles.buttonText}>Enviar instruções</Text>
             )}
           </TouchableOpacity>
 

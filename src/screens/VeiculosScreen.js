@@ -6,10 +6,11 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  StyleSheet
+  StyleSheet,
 } from 'react-native';
-import api from '../services/api';
 import { useFocusEffect } from '@react-navigation/native';
+
+import api from '../services/api';
 
 export default function VeiculosScreen({ navigation }) {
   const [veiculos, setVeiculos] = useState([]);
@@ -19,12 +20,11 @@ export default function VeiculosScreen({ navigation }) {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  // debounce
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
       setPage(1);
-      setVeiculos([]); // 🔥 ADICIONADO
+      setVeiculos([]);
     }, 400);
 
     return () => clearTimeout(timer);
@@ -42,14 +42,14 @@ export default function VeiculosScreen({ navigation }) {
         params: {
           page: currentPage,
           limit: 20,
-          search: debouncedSearch
-        }
+          search: debouncedSearch,
+        },
       });
 
       if (reset) {
         setVeiculos(res.data.dados);
       } else {
-        setVeiculos(prev => [...prev, ...res.data.dados]);
+        setVeiculos((prev) => [...prev, ...res.data.dados]);
       }
 
       setTotal(res.data.total);
@@ -64,21 +64,19 @@ export default function VeiculosScreen({ navigation }) {
   useFocusEffect(
     useCallback(() => {
       load(true);
-    }, [debouncedSearch])
+    }, [debouncedSearch]),
   );
 
   function loadMore() {
-    if (!loadingMore && veiculos.length < total) { // 🔥 ALTERADO
+    if (!loadingMore && veiculos.length < total) {
       load();
     }
   }
 
   return (
     <View style={styles.container}>
-
-      {/* BUSCA */}
       <View style={styles.searchContainer}>
-        <Text>🔍</Text>
+        <Text>Buscar</Text>
         <TextInput
           style={styles.input}
           placeholder="Buscar por placa ou modelo..."
@@ -87,12 +85,11 @@ export default function VeiculosScreen({ navigation }) {
         />
         {search !== '' && (
           <TouchableOpacity onPress={() => setSearch('')}>
-            <Text>❌</Text>
+            <Text>Limpar</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* CONTADOR */}
       <Text style={styles.count}>
         {total} veículos cadastrados
       </Text>
@@ -101,12 +98,12 @@ export default function VeiculosScreen({ navigation }) {
         style={styles.addButton}
         onPress={() => navigation.navigate('CadastroVeiculo')}
       >
-        <Text style={styles.addButtonText}>Cadastrar veiculo</Text>
+        <Text style={styles.addButtonText}>Cadastrar veículo</Text>
       </TouchableOpacity>
 
       <FlatList
         data={veiculos}
-        keyExtractor={item => String(item.id)}
+        keyExtractor={(item) => String(item.id)}
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         renderItem={({ item }) => (
@@ -121,7 +118,7 @@ export default function VeiculosScreen({ navigation }) {
             </Text>
 
             <Text>{item.placa}</Text>
-            <Text>{item.ano} • {item.motor}</Text>
+            <Text>{item.ano} - {item.motor}</Text>
           </TouchableOpacity>
         )}
         ListFooterComponent={
@@ -140,7 +137,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#eee',
     padding: 10,
-    borderRadius: 10
+    borderRadius: 10,
   },
 
   input: { flex: 1, marginLeft: 10 },
@@ -152,7 +149,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 12
+    marginBottom: 12,
   },
 
   addButtonText: { color: '#fff', fontWeight: 'bold' },
@@ -161,8 +158,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 12,
     borderRadius: 10,
-    marginBottom: 10
+    marginBottom: 10,
   },
 
-  title: { fontWeight: 'bold' }
+  title: { fontWeight: 'bold' },
 });
