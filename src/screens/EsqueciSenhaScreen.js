@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -18,6 +17,7 @@ import { theme } from '../utils/theme';
 export default function EsqueciSenhaScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState(null);
 
   const canSubmit = email.trim().includes('@') && email.trim().includes('.');
 
@@ -26,18 +26,22 @@ export default function EsqueciSenhaScreen({ navigation }) {
 
     try {
       setLoading(true);
-      await api.post('/auth/forgot-password', { email: email.trim() });
-      Alert.alert(
-        'Verifique seu e-mail',
-        'Se o e-mail estiver cadastrado, enviaremos as instrucoes para recuperar sua senha.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+      const response = await api.post('/auth/forgot-password', { email: email.trim() });
+      setFeedback({
+        type: 'success',
+        message:
+          response?.data?.message ||
+          'Se o e-mail estiver cadastrado, enviaremos as instrucoes para recuperar sua senha.',
+      });
     } catch (error) {
       const message =
         error?.response?.data?.message ||
         error?.response?.data?.error ||
         'Nao foi possivel solicitar a recuperacao de senha.';
-      Alert.alert('Erro', message);
+      setFeedback({
+        type: 'error',
+        message: Array.isArray(message) ? message.join('\n') : message,
+      });
     } finally {
       setLoading(false);
     }
@@ -63,9 +67,32 @@ export default function EsqueciSenhaScreen({ navigation }) {
             autoCapitalize="none"
             autoCorrect={false}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(value) => {
+              setEmail(value);
+              setFeedback(null);
+            }}
             editable={!loading}
           />
+
+          {feedback ? (
+            <View
+              style={[
+                styles.feedback,
+                feedback.type === 'success' ? styles.feedbackSuccess : styles.feedbackError,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.feedbackText,
+                  feedback.type === 'success'
+                    ? styles.feedbackTextSuccess
+                    : styles.feedbackTextError,
+                ]}
+              >
+                {feedback.message}
+              </Text>
+            </View>
+          ) : null}
 
           <TouchableOpacity
             style={[styles.button, (!canSubmit || loading) && styles.buttonDisabled]}
@@ -78,6 +105,16 @@ export default function EsqueciSenhaScreen({ navigation }) {
               <Text style={styles.buttonText}>Enviar instrucoes</Text>
             )}
           </TouchableOpacity>
+
+          {feedback?.type === 'success' ? (
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              disabled={loading}
+            >
+              <Text style={styles.backButtonText}>Voltar para login</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -107,6 +144,31 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: theme.colors.text,
   },
+  feedback: {
+    marginTop: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  feedbackSuccess: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#86EFAC',
+  },
+  feedbackError: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+  },
+  feedbackText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  feedbackTextSuccess: {
+    color: '#166534',
+  },
+  feedbackTextError: {
+    color: '#B91C1C',
+  },
   button: {
     marginTop: 18,
     height: 52,
@@ -117,4 +179,13 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.7 },
   buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  backButton: {
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  backButtonText: {
+    color: theme.colors.primary,
+    fontSize: 14,
+    fontWeight: '700',
+  },
 });
