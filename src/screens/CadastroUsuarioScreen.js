@@ -96,7 +96,11 @@ export default function CadastroUsuarioScreen({ navigation }) {
       });
     } catch (error) {
       const rawMessage = error?.response?.data?.message;
-      const message = Array.isArray(rawMessage)
+      const isNetworkError = !!error?.request && !error?.response;
+      const apiBase = api?.defaults?.baseURL;
+      const message = isNetworkError
+        ? `Não foi possível conectar ao servidor. Verifique sua internet e se a API está acessível na mesma rede.\n\nAPI: ${apiBase || 'não definida'}`
+        : Array.isArray(rawMessage)
         ? rawMessage.join('\n')
         : rawMessage || error?.response?.data?.error || 'Não foi possível criar sua conta.';
 
