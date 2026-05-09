@@ -1,11 +1,37 @@
 import axios from 'axios';
-import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+import { NativeModules, Platform } from 'react-native';
 
 import { logoutAndRedirectToLogin } from './authSession';
 
-const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ||
-  (Platform.OS === 'android' ? 'http://10.0.2.2:3001/api' : 'http://localhost:3001/api');
+function getDevServerHost() {
+  const expoHostUri = Constants?.expoConfig?.hostUri || Constants?.manifest2?.extra?.expoGo?.debuggerHost;
+  if (expoHostUri && typeof expoHostUri === 'string') {
+    return expoHostUri.split(':')[0];
+  }
+
+  const scriptURL = NativeModules?.SourceCode?.scriptURL;
+  if (!scriptURL || typeof scriptURL !== 'string') return null;
+
+  const match = scriptURL.match(/\/\/([^/:]+)(?::\d+)?\//);
+  return match?.[1] || null;
+}
+
+function resolveApiBaseUrl() {
+  const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+  if (envUrl) return envUrl;
+
+  // Em dispositivo físico via Expo Go, usa o host do bundle (IP da máquina dev).
+  const devHost = getDevServerHost();
+  if (devHost) return `http://${devHost}:3001/api`;
+
+  // Fallback para simuladores/emuladores.
+  return Platform.OS === 'android'
+    ? 'http://10.0.2.2:3001/api'
+    : 'http://localhost:3001/api';
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
