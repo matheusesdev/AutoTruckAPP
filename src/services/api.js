@@ -120,4 +120,120 @@ export const fetchVehicles = async () => {
   return response.data;
 };
 
+// ===== Perfil =====
+export const perfilService = {
+  obterPerfil: async () => {
+    try {
+      const response = await api.get('/users/profile');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || 'Erro ao obter perfil';
+    }
+  },
+
+  atualizarPerfil: async (dados) => {
+    try {
+      const response = await api.patch('/users/profile', dados);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || 'Erro ao atualizar perfil';
+    }
+  },
+};
+
+// ===== Orçamentos =====
+export const orcamentoService = {
+  solicitarOrcamento: async (dados) => {
+    try {
+      const response = await api.post('/quotations', dados);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || 'Erro ao solicitar orçamento';
+    }
+  },
+
+  listarOrcamentos: async (status = null) => {
+    try {
+      const params = {};
+      if (status) params.status = status;
+      const response = await api.get('/quotations', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao listar orçamentos', error);
+      return { quotations: [] };
+    }
+  },
+
+  obterOrcamento: async (id) => {
+    try {
+      const response = await api.get(`/quotations/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || 'Erro ao obter orçamento';
+    }
+  },
+
+  cancelarOrcamento: async (id) => {
+    try {
+      const response = await api.patch(`/quotations/${id}/cancel`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || 'Erro ao cancelar orçamento';
+    }
+  },
+};
+
+// ===== Pedidos =====
+export const pedidoService = {
+  listarPedidos: async () => {
+    try {
+      const response = await api.get('/orders');
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao listar pedidos', error);
+      return { orders: [] };
+    }
+  },
+
+  obterPedido: async (id) => {
+    try {
+      const response = await api.get(`/orders/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || 'Erro ao obter pedido';
+    }
+  },
+
+  rastrearPedido: async (id) => {
+    try {
+      const response = await api.get(`/orders/${id}/tracking`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || 'Erro ao rastrear pedido';
+    }
+  },
+};
+
+// ===== Notificações =====
+export const notificacaoService = {
+  listarNotificacoes: async () => {
+    try {
+      const response = await api.get('/notifications');
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao listar notificações', error);
+      return { notifications: [] };
+    }
+  },
+
+  marcarComoLida: async (id) => {
+    try {
+      const response = await api.patch(`/notifications/${id}/read`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || 'Erro ao marcar notificação como lida';
+    }
+  },
+};
+
 export default api;

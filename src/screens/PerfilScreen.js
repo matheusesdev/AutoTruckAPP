@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Alert,
   StyleSheet,
@@ -6,15 +6,20 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { logoutAndRedirectToLogin } from '../services/authSession';
+import { perfilService } from '../services/api';
 import useUserStore from '../store/userStore';
 import { theme } from '../utils/theme';
 
 export default function PerfilScreen({ navigation }) {
   const authenticatedUser = useUserStore((state) => state.user);
+  const setAuthData = useUserStore((state) => state.setAuthData);
+  const token = useUserStore((state) => state.token);
+
   const [user, setUser] = useState({
     nome: authenticatedUser?.nome || 'Usuário',
     email: authenticatedUser?.email || '',
@@ -24,6 +29,22 @@ export default function PerfilScreen({ navigation }) {
   });
 
   const [editUser, setEditUser] = useState(user);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (authenticatedUser) {
+      const userData = {
+        nome: authenticatedUser?.nome || 'Usuário',
+        email: authenticatedUser?.email || '',
+        telefone: authenticatedUser?.telefone || '',
+        tipo: authenticatedUser?.tipo_usuario || 'cliente',
+        criado_em: authenticatedUser?.criado_em || '',
+      };
+      setUser(userData);
+      setEditUser(userData);
+    }
+  }, [authenticatedUser]);
 
   const isChanged =
     user.nome !== editUser.nome ||
@@ -42,14 +63,48 @@ export default function PerfilScreen({ navigation }) {
     return initials || 'U';
   };
 
-  const handleSave = () => {
-    setUser(editUser);
-    Alert.alert('Sucesso', 'Dados atualizados!');
+  const handleSave = async () => {
+    if (!isChanged) return;
+
+    setIsSaving(true);
+    try {
+      const dadosAtualizacao = {
+        nome: editUser.nome,
+        telefone: editUser.telefone,
+      };
+
+      const response = await perfilService.atualizarPerfil(dadosAtualizacao);
+      
+      // Atualizar o store com os novos dados
+      setAuthData({
+        token,
+        user: {
+          ...authenticatedUser,
+          ...response.user,
+        }
+      });
+
+      setUser(editUser);
+      Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar perfil:', error);
+      Alert.alert('Erro', error.message || 'Erro ao atualizar perfil');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleLogout = () => {
     logoutAndRedirectToLogin(navigation);
   };
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color={theme.colors.accent} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -73,6 +128,7 @@ export default function PerfilScreen({ navigation }) {
           setEditUser({ ...editUser, nome: text })
         }
         placeholder="Nome"
+        editable={!isSaving}
       />
 
       <TextInput
@@ -82,11 +138,20 @@ export default function PerfilScreen({ navigation }) {
           setEditUser({ ...editUser, telefone: text })
         }
         placeholder="Telefone"
+        editable={!isSaving}
       />
 
       {isChanged && (
-        <TouchableOpacity style={styles.button} onPress={handleSave}>
-          <Text style={styles.buttonText}>Salvar alterações</Text>
+        <TouchableOpacity 
+          style={[styles.button, isSaving && { opacity: 0.6 }]} 
+          onPress={handleSave}
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Salvar alterações</Text>
+          )}
         </TouchableOpacity>
       )}
 
@@ -128,6 +193,7 @@ const styles = StyleSheet.create({
   nome: {
     fontSize: 20,
     color: theme.colors.text || '#000',
+    fontWeight: '600',
   },
   email: {
     color: 'gray',
@@ -141,6 +207,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 12,
+    fontWeight: '500',
   },
   input: {
     width: '100%',
@@ -158,13 +225,17 @@ const styles = StyleSheet.create({
     marginTop: 10,
     width: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
   },
   buttonText: {
     color: '#fff',
+    fontWeight: '600',
   },
   data: {
     marginTop: 20,
     color: 'gray',
+    fontSize: 12,
   },
   logoutButton: {
     marginTop: 24,

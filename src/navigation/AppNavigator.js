@@ -25,6 +25,9 @@ import DetalhePecasScreen from '../screens/DetalhePecasScreen';
 import EditarVeiculoScreen from '../screens/EditarVeiculoScreen';
 import OrcamentosScreen from '../screens/OrcamentosScreen';
 import SolicitarOrcamentoScreen from '../screens/SolicitarOrcamentoScreen';
+import PedidosScreen from '../screens/PedidosScreen';
+import DetalhesPedidoScreen from '../screens/DetalhesPedidoScreen';
+import NotificacoesScreen from '../screens/NotificacoesScreen';
 
 import { theme } from '../utils/theme';
 
@@ -50,6 +53,8 @@ function TabNavigator() {
           else if (route.name === 'Peças') iconName = focused ? 'build' : 'build-outline';
           else if (route.name === 'Veículos') iconName = focused ? 'bus' : 'bus-outline';
           else if (route.name === 'Serviços') iconName = focused ? 'construct' : 'construct-outline';
+          else if (route.name === 'Pedidos') iconName = focused ? 'bag' : 'bag-outline';
+          else if (route.name === 'Notificações') iconName = focused ? 'notifications' : 'notifications-outline';
           else if (route.name === 'Perfil') iconName = focused ? 'person' : 'person-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -62,6 +67,8 @@ function TabNavigator() {
       <Tab.Screen name="Peças" component={PecasScreen} />
       <Tab.Screen name="Veículos" component={VeiculosScreen} />
       <Tab.Screen name="Serviços" component={ServicosScreen} />
+      <Tab.Screen name="Pedidos" component={PedidosScreen} />
+      <Tab.Screen name="Notificações" component={NotificacoesScreen} />
       <Tab.Screen name="Perfil" component={PerfilScreen} />
       <Tab.Screen name="Orçamentos" component={OrcamentosScreen} />
     </Tab.Navigator>
@@ -175,6 +182,12 @@ export default function AppNavigator() {
         <Stack.Screen
           name="SolicitarOrcamento"
           component={SolicitarOrcamentoScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="DetalhesPedido"
+          component={DetalhesPedidoScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
