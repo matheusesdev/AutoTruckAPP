@@ -27,8 +27,8 @@ function resolveApiBaseUrl() {
 
   // Fallback para simuladores/emuladores.
   return Platform.OS === 'android'
-    ? 'http://10.0.2.2:3001/api'
-    : 'http://localhost:3001/api';
+    ? 'http://10.0.2.2:3000/api'
+    : 'http://localhost:3000/api';
 }
 
 const API_BASE_URL = resolveApiBaseUrl();
@@ -101,10 +101,13 @@ export const agendamentoService = {
   },
 };
 
-export const fetchParts = async ({ search = '', page = 1, limit = 20, veiculo_id = null } = {}) => {
+// Busca de peças no backend. Suporta pesquisa por termo, veículo, código de barras e VIN.
+export const fetchParts = async ({ search = '', page = 1, limit = 20, veiculo_id = null, codigo = null, vin = null } = {}) => {
   const params = { page, limit };
   if (search) params.search = search;
   if (veiculo_id) params.veiculo_id = veiculo_id;
+  if (codigo) params.codigo = codigo;
+  if (vin) params.vin = vin;
 
   const response = await api.get('/parts', { params });
   return response.data;
