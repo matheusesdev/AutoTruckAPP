@@ -14,7 +14,10 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "O app usa a câmera para escanear códigos de peças e VIN."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,6 +26,14 @@
       },
       "edgeToEdgeEnabled": true
     },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O app usa a câmera para escanear códigos de peças e VIN."
+        }
+      ]
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     }
