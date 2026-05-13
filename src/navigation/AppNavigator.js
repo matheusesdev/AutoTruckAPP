@@ -22,6 +22,8 @@ import AgendarServicoScreen from '../screens/AgendarServicoScreen';
 import DetalheServicoScreen from '../screens/DetalheServicoScreen';
 import { navigationRef } from './navigationService';
 import DetalhePecasScreen from '../screens/DetalhePecasScreen';
+import ScannerScreen from '../screens/ScannerScreen';
+import ResultadoVinScreen from '../screens/ResultadoVinScreen';
 import EditarVeiculoScreen from '../screens/EditarVeiculoScreen';
 import OrcamentosScreen from '../screens/OrcamentosScreen';
 import SolicitarOrcamentoScreen from '../screens/SolicitarOrcamentoScreen';
@@ -171,6 +173,18 @@ export default function AppNavigator() {
           name="DetalhePecas"
           component={DetalhePecasScreen}
           options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="Scanner"
+          component={ScannerScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="ResultadoVin"
+          component={ResultadoVinScreen}
+          options={{ title: 'Peças por VIN', headerTintColor: theme.colors.primary }}
         />
 
         <Stack.Screen
