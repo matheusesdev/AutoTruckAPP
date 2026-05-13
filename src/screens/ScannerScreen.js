@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,56 +10,28 @@ import {
   TextInput,
   Platform,
 } from 'react-native';
-import { Camera, useCameraDevices } from 'react-native-vision-camera';
-import { useScanBarcodes, BarcodeFormat } from 'vision-camera-code-scanner';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { theme } from '../utils/theme';
 import { fetchParts } from '../services/api';
 import { Vibration } from 'react-native';
 
 export default function ScannerScreen({ navigation }) {
-  const [permissionStatus, setPermissionStatus] = useState(null);
+  const cameraRef = useRef(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const [isActive, setIsActive] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [manualModalVisible, setManualModalVisible] = useState(false);
   const [manualCode, setManualCode] = useState('');
-  const devices = useCameraDevices();
-  const device = devices.back;
-
-  const [frameProcessor, barcodes] = useScanBarcodes([BarcodeFormat.ALL_FORMATS], {
-    checkInverted: true,
-  });
+  const barcodeLockRef = useRef(false);
 
   useEffect(() => {
-    const requestPermission = async () => {
-      const status = await Camera.getCameraPermissionStatus();
-      if (status !== 'authorized') {
-        const newStatus = await Camera.requestCameraPermission();
-        if (newStatus !== 'authorized') {
-          Alert.alert(
-            'Permissão de câmera',
-            'É necessário permitir o uso da câmera para escanear códigos.',
-            [{ text: 'OK', onPress: () => navigation.goBack() }],
-          );
-          return;
-        }
-      }
-      setPermissionStatus('authorized');
-      setIsActive(true);
-    };
-
-    requestPermission();
-  }, [navigation]);
-
-  useEffect(() => {
-    if (!scanned && barcodes?.length > 0) {
-      const rawValue = barcodes[0].displayValue || barcodes[0].rawValue;
-      if (rawValue) {
-        handleDetectedCode(rawValue);
-      }
-    }
-  }, [barcodes, scanned]);
+    setIsActive(Boolean(permission?.granted));
+  }, [permission]);
 
   async function handleDetectedCode(code) {
+    if (barcodeLockRef.current || scanned) return;
+
+    barcodeLockRef.current = true;
     Vibration.vibrate([0, 80, 50, 80]);
     setScanned(true);
     try {
@@ -82,7 +54,10 @@ export default function ScannerScreen({ navigation }) {
       [
         {
           text: 'Escanear novamente',
-          onPress: () => setScanned(false),
+          onPress: () => {
+            barcodeLockRef.current = false;
+            setScanned(false);
+          },
         },
         {
           text: 'Solicitar orçamento',
@@ -109,31 +84,46 @@ export default function ScannerScreen({ navigation }) {
     handleDetectedCode(trimmedCode);
   };
 
-  if (permissionStatus !== 'authorized') {
+  const handleBarcodeScanned = ({ data }) => {
+    if (!data || scanned || barcodeLockRef.current) return;
+    handleDetectedCode(data);
+  };
+
+  const handleRequestPermission = async () => {
+    await requestPermission();
+  };
+
+  if (!permission) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.colors.accent} />
-        <Text style={styles.loadingText}>Aguardando permissão da câmera...</Text>
+        <Text style={styles.loadingText}>Carregando câmera...</Text>
+      </View>
+    );
+  }
+
+  if (!permission.granted) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.accent} />
+        <Text style={styles.loadingText}>Permissão da câmera necessária para escanear códigos.</Text>
+        <TouchableOpacity style={styles.permissionButton} onPress={handleRequestPermission}>
+          <Text style={styles.permissionButtonText}>Permitir câmera</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {device ? (
-        <Camera
+      <CameraView
+        ref={cameraRef}
           style={StyleSheet.absoluteFill}
-          device={device}
-          isActive={isActive}
-          frameProcessor={frameProcessor}
-          frameProcessorFps={5}
-        />
-      ) : (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.accent} />
-          <Text style={styles.loadingText}>Carregando câmera...</Text>
-        </View>
-      )}
+        facing="back"
+        isActive={isActive}
+        onBarcodeScanned={handleBarcodeScanned}
+        barcodeScannerSettings={{ barcodeTypes: ['qr', 'pdf417', 'ean13', 'ean8', 'code128', 'code39', 'upc_a', 'upc_e', 'itf14', 'aztec', 'datamatrix'] }}
+      />
 
       <View style={styles.overlay} pointerEvents="none">
         <Text style={styles.topText}>Ou aponte para o QR Code / código VIN</Text>
@@ -199,6 +189,18 @@ const styles = StyleSheet.create({
     marginTop: 16,
     color: '#FFF',
     fontSize: 15,
+  },
+  permissionButton: {
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    backgroundColor: theme.colors.primary,
+  },
+  permissionButtonText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '700',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
