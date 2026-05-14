@@ -124,10 +124,10 @@ export default function CadastroUsuarioScreen({ navigation }) {
         `local_signup_${Date.now()}`;
 
       const userData = {
-        ...usuario,
-        nome: usuario?.nome || nome.trim(),
-        email: usuario?.email || email.trim(),
-        telefone: usuario?.telefone || telefone.trim(),
+        ...(usuario || {}),
+        nome: (usuario && usuario.nome) || nome.trim(),
+        email: (usuario && usuario.email) || email.trim(),
+        telefone: (usuario && usuario.telefone) || telefone.trim(),
       };
 
       await AsyncStorage.setItem('access_token', token);
