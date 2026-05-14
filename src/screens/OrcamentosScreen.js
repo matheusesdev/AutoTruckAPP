@@ -1,239 +1,220 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
   StyleSheet,
   RefreshControl,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { orcamentoService } from '../services/api';
+import EmptyState from '../components/EmptyState';
+import SkeletonBox from '../components/SkeletonBox';
+import { useOrcamentos } from '../hooks/useOrcamentos';
 import { theme } from '../utils/theme';
 
+const TAB_OPTIONS = ['Ativos', 'Historico'];
+
+const STATUS_VARIANTS = {
+  aguardando: {
+    label: 'Aguardando',
+    icon: 'time-outline',
+    backgroundColor: '#2A2000',
+    textColor: '#FFD60A',
+  },
+  em_analise: {
+    label: 'Em analise',
+    icon: 'search-outline',
+    backgroundColor: '#0D1F3C',
+    textColor: '#7FA8D8',
+  },
+  respondido: {
+    label: 'Respondido',
+    icon: 'checkmark-circle-outline',
+    backgroundColor: '#0D3320',
+    textColor: '#30D158',
+  },
+};
+
 export default function OrcamentosScreen({ navigation }) {
-  const [orcamentos, setOrcamentos] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('Ativos');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [filtroStatus, setFiltroStatus] = useState('todos'); // 'todos', 'aguardando', 'respondido', 'cancelado'
-  const [expandedId, setExpandedId] = useState(null);
-
-  const statusConfig = {
-    aguardando: { color: '#9CA3AF', label: 'Aguardando resposta' },
-    em_analise: { color: '#F59E0B', label: 'Em análise' },
-    respondido: { color: '#10B981', label: 'Respondido' },
-    cancelado: { color: '#EF4444', label: 'Cancelado' },
-    expirado: { color: '#6B7280', label: 'Expirado' },
-  };
-
-  const loadOrcamentos = useCallback(async (status = null) => {
-    try {
-      setIsLoading(true);
-      const data = await orcamentoService.listarOrcamentos(status);
-      setOrcamentos(Array.isArray(data) ? data : data.quotations || []);
-    } catch (error) {
-      console.error('Erro ao carregar orçamentos:', error);
-      Alert.alert('Erro', 'Não foi possível carregar os orçamentos');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    await loadOrcamentos(filtroStatus === 'todos' ? null : filtroStatus);
-    setIsRefreshing(false);
-  }, [filtroStatus, loadOrcamentos]);
+  const { orcamentos, isLoading, error, refresh } = useOrcamentos();
 
   useFocusEffect(
     useCallback(() => {
-      loadOrcamentos(filtroStatus === 'todos' ? null : filtroStatus);
-    }, [filtroStatus, loadOrcamentos])
+      refresh();
+    }, [refresh])
   );
 
-  const handleCancelar = (id) => {
-    Alert.alert(
-      'Cancelar orçamento',
-      'Tem certeza que deseja cancelar este orçamento?',
-      [
-        { text: 'Não', onPress: () => {} },
-        {
-          text: 'Sim, cancelar',
-          onPress: async () => {
-            try {
-              await orcamentoService.cancelarOrcamento(id);
-              Alert.alert('Sucesso', 'Orçamento cancelado com sucesso');
-              handleRefresh();
-            } catch (error) {
-              Alert.alert('Erro', error.message || 'Erro ao cancelar orçamento');
-            }
-          },
-        },
-      ]
+  const ativos = useMemo(
+    () => orcamentos.filter((item) => item.status !== 'respondido'),
+    [orcamentos]
+  );
+
+  const historico = useMemo(
+    () => orcamentos.filter((item) => item.status === 'respondido'),
+    [orcamentos]
+  );
+
+  const visibleOrcamentos = activeTab === 'Ativos' ? ativos : historico;
+
+  const formatDate = (value) => {
+    if (!value) return '';
+    const date = new Date(value);
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  const getStatusVariant = (status) => {
+    return STATUS_VARIANTS[status] || {
+      label: status || 'Indefinido',
+      icon: 'help-circle-outline',
+      backgroundColor: '#2E2E2E',
+      textColor: '#CBD5E1',
+    };
+  };
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await refresh();
+    setIsRefreshing(false);
+  }, [refresh]);
+
+  const handleViewDetails = useCallback(() => {
+    Alert.alert('Em breve', 'Detalhes do orcamento ainda nao estao disponiveis.');
+  }, []);
+
+  const renderTabButton = (tab) => {
+    const isActive = activeTab === tab;
+    return (
+      <TouchableOpacity
+        key={tab}
+        onPress={() => setActiveTab(tab)}
+        style={[styles.tabButton, isActive ? styles.tabButtonActive : styles.tabButtonInactive]}
+      >
+        <Text style={[styles.tabLabel, isActive ? styles.tabLabelActive : styles.tabLabelInactive]}>
+          {tab}
+        </Text>
+      </TouchableOpacity>
     );
   };
 
-  const getStatusColor = (status) => {
-    return statusConfig[status]?.color || '#9CA3AF';
-  };
+  const renderStatusBadge = (status) => {
+    const variant = getStatusVariant(status);
+    const badgeStyle =
+      status === 'aguardando'
+        ? styles.statusBadgeAguardando
+        : status === 'em_analise'
+        ? styles.statusBadgeEmAnalise
+        : status === 'respondido'
+        ? styles.statusBadgeRespondido
+        : styles.statusBadgeDefault;
 
-  const getStatusLabel = (status) => {
-    return statusConfig[status]?.label || status;
-  };
+    const labelStyle =
+      status === 'aguardando'
+        ? styles.statusLabelAguardando
+        : status === 'em_analise'
+        ? styles.statusLabelEmAnalise
+        : status === 'respondido'
+        ? styles.statusLabelRespondido
+        : styles.statusLabelDefault;
 
-  const formatarData = (data) => {
-    if (!data) return '';
-    const date = new Date(data);
-    return date.toLocaleDateString('pt-BR');
-  };
-
-  const podesCancelar = (status) => {
-    return ['aguardando', 'em_analise'].includes(status);
-  };
-
-  const filteredOrcamentos = orcamentos.filter((orcamento) => {
-    if (filtroStatus === 'todos') return true;
-    return orcamento.status === filtroStatus;
-  });
-
-  if (isLoading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center' }]}>
-        <ActivityIndicator size="large" color={theme.colors.accent} />
+      <View style={[styles.statusBadge, badgeStyle]}> 
+        <Ionicons name={variant.icon} size={12} color={variant.textColor} style={styles.statusIcon} />
+        <Text style={[styles.statusLabel, labelStyle]}>{variant.label}</Text>
       </View>
     );
+  };
+
+  const renderOrcamento = ({ item }) => (
+    <View style={styles.card}> 
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle} numberOfLines={2}>
+          {item.descricao || item.nome_peca || 'Orcamento sem descricao'}
+        </Text>
+        <Text style={styles.cardDate}>{formatDate(item.data_criacao || item.created_at)}</Text>
+      </View>
+
+      <View style={styles.divider} />
+
+      <View style={styles.cardBody}>
+        <View style={styles.vehicleRow}>
+          <Ionicons name="car-outline" size={18} color={theme.colors.accent} />
+          <Text style={styles.vehicleText}>{item.veiculo || 'Veiculo nao informado'}</Text>
+        </View>
+        {renderStatusBadge(item.status)}
+      </View>
+
+      <View style={styles.divider} />
+
+      <View style={styles.cardFooter}>
+        <TouchableOpacity onPress={handleViewDetails} style={styles.detailsButton}>
+          <Text style={styles.detailsText}>{'Ver detalhes ->'}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderLoadingSkeleton = () => (
+    <View style={styles.listContent}>
+      {[1, 2, 3].map((item) => (
+        <View key={item} style={styles.card}>
+          <View style={styles.skeletonGroup}>
+            <SkeletonBox width="100%" height={20} style={styles.skeletonGap} />
+            <SkeletonBox width="60%" height={14} style={styles.skeletonGap} />
+          </View>
+          <View style={styles.divider} />
+          <View style={[styles.cardBody, styles.skeletonBody]}>
+            <SkeletonBox width="40%" height={14} style={styles.skeletonGap} />
+            <SkeletonBox width="25%" height={18} style={styles.skeletonGap} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+
+  const renderEmptyState = () => {
+    const emptyProps =
+      activeTab === 'Ativos'
+        ? { icon: 'document-text-outline', title: 'Nenhum orcamento ativo' }
+        : { icon: 'archive-outline', title: 'Historico vazio' };
+
+    return <EmptyState {...emptyProps} />;
+  };
+
+  if (isLoading && !isRefreshing) {
+    return <View style={styles.loadingContainer}>{renderLoadingSkeleton()}</View>;
   }
 
   return (
     <View style={styles.container}>
-      {/* Botão de nova solicitação */}
-      <TouchableOpacity
-        onPress={() => navigation.navigate('SolicitarOrcamento')}
-        style={styles.novaOrcamentoButton}
-      >
-        <Ionicons name="add" size={24} color="#fff" />
-        <Text style={styles.novaOrcamentoText}>Solicitar orçamento</Text>
-      </TouchableOpacity>
+      <View style={styles.tabsWrapper}>{TAB_OPTIONS.map(renderTabButton)}</View>
 
-      {/* Filtros de status */}
-      <View style={styles.filtrosContainer}>
-        {['todos', 'aguardando', 'respondido', 'cancelado'].map((status) => (
-          <TouchableOpacity
-            key={status}
-            style={[
-              styles.filtroButton,
-              filtroStatus === status && styles.filtroButtonActive,
-            ]}
-            onPress={() => setFiltroStatus(status)}
-          >
-            <Text
-              style={[
-                styles.filtroText,
-                filtroStatus === status && styles.filtroTextActive,
-              ]}
-            >
-              {status === 'todos' ? 'Todos' : getStatusLabel(status)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Lista de orçamentos */}
-      {filteredOrcamentos.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="document-outline" size={64} color="#ccc" />
-          <Text style={styles.emptyText}>Nenhum orçamento encontrado</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('SolicitarOrcamento')}
-            style={styles.emptyButton}
-          >
-            <Text style={styles.emptyButtonText}>Solicitar agora</Text>
-          </TouchableOpacity>
+      {error ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
         </View>
+      ) : null}
+
+      {visibleOrcamentos.length === 0 ? (
+        renderEmptyState()
       ) : (
         <FlatList
-          data={filteredOrcamentos}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.orcamentoCard}>
-              <TouchableOpacity
-                style={styles.orcamentoHeader}
-                onPress={() =>
-                  setExpandedId(expandedId === item.id ? null : item.id)
-                }
-              >
-                <View style={styles.orcamentoInfo}>
-                  <Text style={styles.orcamentoNome} numberOfLines={2}>
-                    {item.nome_peca}
-                  </Text>
-                  <Text style={styles.orcamentoVeiculo}>{item.veiculo}</Text>
-                  <View style={styles.statusContainer}>
-                    <View
-                      style={[
-                        styles.statusBadge,
-                        { backgroundColor: getStatusColor(item.status) },
-                      ]}
-                    >
-                      <Text style={styles.statusText}>
-                        {getStatusLabel(item.status)}
-                      </Text>
-                    </View>
-                    <Text style={styles.orcamentoData}>
-                      {formatarData(item.data_criacao)}
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons
-                  name={expandedId === item.id ? 'chevron-up' : 'chevron-down'}
-                  size={24}
-                  color="#666"
-                />
-              </TouchableOpacity>
-
-              {expandedId === item.id && (
-                <View style={styles.orcamentoDetalhes}>
-                  <Text style={styles.detalheLabel}>Descrição:</Text>
-                  <Text style={styles.detalheTexto}>{item.descricao}</Text>
-
-                  {item.valor_orcado && (
-                    <>
-                      <Text style={styles.detalheLabel}>Valor orçado:</Text>
-                      <Text style={styles.detalheValor}>
-                        R$ {parseFloat(item.valor_orcado).toFixed(2)}
-                      </Text>
-                    </>
-                  )}
-
-                  {item.observacoes && (
-                    <>
-                      <Text style={styles.detalheLabel}>Observações:</Text>
-                      <Text style={styles.detalheTexto}>{item.observacoes}</Text>
-                    </>
-                  )}
-
-                  {podesCancelar(item.status) && (
-                    <TouchableOpacity
-                      style={styles.cancelarButton}
-                      onPress={() => handleCancelar(item.id)}
-                    >
-                      <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                      <Text style={styles.cancelarText}>Cancelar orçamento</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-            </View>
-          )}
+          data={visibleOrcamentos}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={styles.listContent}
+          renderItem={renderOrcamento}
           refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              colors={[theme.colors.accent]}
-            />
+            <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[theme.colors.accent]} />
           }
+          showsVerticalScrollIndicator={false}
         />
       )}
     </View>
@@ -243,158 +224,162 @@ export default function OrcamentosScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: theme.colors.background,
+    paddingTop: theme.spacing.md,
   },
-  novaOrcamentoButton: {
-    backgroundColor: theme.colors.accent,
-    padding: 15,
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    paddingTop: theme.spacing.md,
+  },
+  tabsWrapper: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.surfaceElevated,
     borderRadius: 10,
-    marginBottom: 15,
+    padding: 4,
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
   },
-  novaOrcamentoText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
+  tabButtonActive: {
+    backgroundColor: theme.colors.primary,
   },
-  filtrosContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    gap: 8,
-    paddingHorizontal: 0,
+  tabButtonInactive: {
+    backgroundColor: 'transparent',
   },
-  filtroButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    backgroundColor: '#fff',
-  },
-  filtroButtonActive: {
-    backgroundColor: theme.colors.accent,
-    borderColor: theme.colors.accent,
-  },
-  filtroText: {
-    fontSize: 12,
+  tabLabel: {
+    fontSize: 14,
     fontWeight: '600',
-    color: '#666',
   },
-  filtroTextActive: {
+  tabLabelActive: {
     color: '#fff',
   },
-  orcamentoCard: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 10,
+  tabLabelInactive: {
+    color: theme.colors.disabledText,
+  },
+  listContent: {
+    paddingBottom: theme.spacing.xl,
+  },
+  card: {
+    marginHorizontal: 16,
     marginBottom: 12,
-    backgroundColor: '#fff',
+    borderRadius: 12,
+    backgroundColor: theme.colors.surfaceElevated,
+    ...theme.shadow.sm,
     overflow: 'hidden',
   },
-  orcamentoHeader: {
+  cardHeader: {
     padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: 16,
   },
-  orcamentoInfo: {
+  cardTitle: {
     flex: 1,
+    ...theme.typography.body,
+    fontWeight: '600',
+    color: '#fff',
   },
-  orcamentoNome: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: 4,
+  cardDate: {
+    ...theme.typography.caption,
+    color: theme.colors.disabledText,
   },
-  orcamentoVeiculo: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 8,
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#40444A',
+    marginHorizontal: 16,
   },
-  statusContainer: {
+  cardBody: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  vehicleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
+    flex: 1,
+  },
+  vehicleText: {
+    ...theme.typography.bodySmall,
+    color: '#fff',
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  orcamentoData: {
-    fontSize: 12,
-    color: '#999',
-  },
-  orcamentoDetalhes: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  detalheLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#666',
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  detalheTexto: {
-    fontSize: 13,
-    color: theme.colors.text,
-    lineHeight: 18,
-  },
-  detalheValor: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#10B981',
-  },
-  cancelarButton: {
-    marginTop: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
-    backgroundColor: '#FEF2F2',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: theme.radius.full,
   },
-  cancelarText: {
-    color: '#EF4444',
+  statusBadgeAguardando: {
+    backgroundColor: '#2A2000',
+  },
+  statusBadgeEmAnalise: {
+    backgroundColor: '#0D1F3C',
+  },
+  statusBadgeRespondido: {
+    backgroundColor: '#0D3320',
+  },
+  statusBadgeDefault: {
+    backgroundColor: '#2E2E2E',
+  },
+  statusIcon: {
+    marginRight: 6,
+  },
+  statusLabel: {
+    ...theme.typography.caption,
     fontWeight: '600',
-    fontSize: 14,
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingBottom: 100,
+  statusLabelAguardando: {
+    color: '#FFD60A',
   },
-  emptyText: {
-    fontSize: 16,
-    color: '#999',
-    marginTop: 16,
-    marginBottom: 20,
+  statusLabelEmAnalise: {
+    color: '#7FA8D8',
   },
-  emptyButton: {
-    backgroundColor: theme.colors.accent,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+  statusLabelRespondido: {
+    color: '#30D158',
   },
-  emptyButtonText: {
-    color: '#fff',
-    fontWeight: '600',
+  statusLabelDefault: {
+    color: '#CBD5E1',
+  },
+  cardFooter: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#40444A',
+    padding: 16,
+    alignItems: 'flex-end',
+  },
+  detailsButton: {
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+  detailsText: {
+    ...theme.typography.label,
+    color: '#FF9500',
+  },
+  skeletonGroup: {
+    padding: 16,
+  },
+  skeletonGap: {
+    marginBottom: 12,
+  },
+  skeletonBody: {
+    justifyContent: 'space-between',
+  },
+  errorContainer: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  errorText: {
+    color: theme.colors.error,
+    ...theme.typography.body,
+    textAlign: 'center',
   },
 });
