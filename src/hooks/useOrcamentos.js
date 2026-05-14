@@ -12,7 +12,7 @@ export function useOrcamentos() {
 
     try {
       const response = await orcamentoService.listarOrcamentos();
-      const items = Array.isArray(response) ? response : response.quotations || [];
+      const items = Array.isArray(response) ? response : response?.quotations || [];
       setOrcamentos(items);
     } catch (err) {
       setError(err.message || 'Não foi possível carregar os orçamentos');

@@ -56,7 +56,7 @@ export default function NotificacoesScreen({ navigation }) {
     try {
       setIsLoading(true);
       const data = await notificacaoService.listarNotificacoes();
-      setNotificacoes(Array.isArray(data) ? data : data.notifications || []);
+      setNotificacoes(Array.isArray(data) ? data : data?.notifications || []);
     } catch (error) {
       console.error('Erro ao carregar notificações:', error);
     } finally {

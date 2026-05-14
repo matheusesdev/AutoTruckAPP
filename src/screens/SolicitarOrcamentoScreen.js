@@ -22,7 +22,7 @@ import ScreenHeader from '../components/ScreenHeader';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const STEPS = ['Veículo', 'Descrição', 'Foto'];
+const STEPS = ['Veï¿½culo', 'Descriï¿½ï¿½o', 'Foto'];
 
 export default function SolicitarOrcamentoScreen({ navigation }) {
   const [currentStep, setCurrentStep] = useState(0);
@@ -68,7 +68,7 @@ export default function SolicitarOrcamentoScreen({ navigation }) {
   const handleSelectPhoto = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permissionResult.granted === false) {
-      Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria para adicionar fotos.');
+      Alert.alert('Permissï¿½o necessï¿½ria', 'Precisamos de acesso ï¿½ galeria para adicionar fotos.');
       return;
     }
 
@@ -99,8 +99,8 @@ export default function SolicitarOrcamentoScreen({ navigation }) {
         const fileType = uriParts[uriParts.length - 1];
         formData.append('foto', {
           uri: photo.uri,
-          name: \peca.\\,
-          type: \image/\\,
+          name: `peca.${fileType}`,
+          type: `image/${fileType}`,
         });
       }
 
@@ -116,11 +116,11 @@ export default function SolicitarOrcamentoScreen({ navigation }) {
         }),
         Animated.delay(1200),
       ]).start(() => {
-        showToast('Orçamento solicitado com sucesso!', 'success');
+        showToast('Orï¿½amento solicitado com sucesso!', 'success');
         setTimeout(() => navigation.goBack(), 600);
       });
     } catch (error) {
-      Alert.alert('Erro', error.message || 'Erro ao enviar solicitação');
+      Alert.alert('Erro', error.message || 'Erro ao enviar solicitaï¿½ï¿½o');
       setIsSubmitting(false);
     }
   };
@@ -184,13 +184,13 @@ export default function SolicitarOrcamentoScreen({ navigation }) {
         return (
           <View style={styles.stepContainer}>
             <Text style={[styles.stepTitle, theme.typography.h3]}>
-              Qual veículo precisa da peça?
+              Qual veï¿½culo precisa da peï¿½a?
             </Text>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.vehiclesList}>
               {loadingVehicles ? (
-                <Text style={styles.loadingText}>Carregando veículos...</Text>
+                <Text style={styles.loadingText}>Carregando veï¿½culos...</Text>
               ) : veiculos.length === 0 ? (
-                <Text style={styles.emptyText}>Nenhum veículo cadastrado</Text>
+                <Text style={styles.emptyText}>Nenhum veï¿½culo cadastrado</Text>
               ) : (
                 veiculos.map((vehicle) => (
                   <TouchableOpacity
@@ -234,12 +234,12 @@ export default function SolicitarOrcamentoScreen({ navigation }) {
       case 1:
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepLabel}>Descreva a peça que você precisa</Text>
+            <Text style={styles.stepLabel}>Descreva a peï¿½a que vocï¿½ precisa</Text>
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.textInput}
                 multiline
-                placeholder="Ex: Filtro de óleo para motor 2.0 turbo..."
+                placeholder="Ex: Filtro de ï¿½leo para motor 2.0 turbo..."
                 value={description}
                 onChangeText={setDescription}
                 maxLength={500}
@@ -255,14 +255,14 @@ export default function SolicitarOrcamentoScreen({ navigation }) {
                 {description.length}/500
               </Text>
             </View>
-            <Text style={styles.hintText}>Inclua marca, modelo e código se souber</Text>
+            <Text style={styles.hintText}>Inclua marca, modelo e cï¿½digo se souber</Text>
           </View>
         );
 
       case 2:
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Adicione uma foto da peça (opcional)</Text>
+            <Text style={styles.stepTitle}>Adicione uma foto da peï¿½a (opcional)</Text>
             {!photo ? (
               <TouchableOpacity style={styles.photoButton} onPress={handleSelectPhoto}>
                 <Ionicons name="camera-outline" size={48} color="#2A5298" />
@@ -320,14 +320,14 @@ export default function SolicitarOrcamentoScreen({ navigation }) {
             onPress={handleNext}
             disabled={isNextDisabled}
           >
-            <Text style={[styles.buttonText, styles.primaryButtonText]}>Próximo</Text>
+            <Text style={[styles.buttonText, styles.primaryButtonText]}>Prï¿½ximo</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
             style={[styles.button, styles.submitButton]}
             onPress={handleSubmit}
           >
-            <Text style={[styles.buttonText, styles.submitButtonText]}>Enviar Solicitação</Text>
+            <Text style={[styles.buttonText, styles.submitButtonText]}>Enviar Solicitaï¿½ï¿½o</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -336,7 +336,7 @@ export default function SolicitarOrcamentoScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Solicitar Orçamento" onBack={handleBack} />
+      <ScreenHeader title="Solicitar Orï¿½amento" onBack={handleBack} />
       {renderProgressIndicator()}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {renderStepContent()}

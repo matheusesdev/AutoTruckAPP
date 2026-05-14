@@ -107,7 +107,9 @@ export default function PecasScreen({ navigation, route }) {
   const [vinResultados, setVinResultados] = useState([]);
   const [vinBuscando, setVinBuscando] = useState(false);
   const [vinSemResultado, setVinSemResultado] = useState(false);
-  const resultCount = modoBusca === 'vin' ? vinResultados.length : parts.length;
+  const safeVinResultados = Array.isArray(vinResultados) ? vinResultados : [];
+  const safeParts = Array.isArray(parts) ? parts : [];
+  const resultCount = modoBusca === 'vin' ? safeVinResultados.length : safeParts.length;
  
   const [veiculos, setVeiculos] = useState([]);
   const [veiculoSelecionado, setVeiculoSelecionado] = useState(null);
@@ -219,17 +221,30 @@ export default function PecasScreen({ navigation, route }) {
         limit: 20,
         veiculo_id: veiculoSelecionado?.id || null,
       });
- 
+
+      // Normaliza diferentes formatos de resposta da API
+      const items = Array.isArray(resultado)
+        ? resultado
+        : Array.isArray(resultado?.data)
+        ? resultado.data
+        : Array.isArray(resultado?.dados)
+        ? resultado.dados
+        : Array.isArray(resultado?.items)
+        ? resultado.items
+        : [];
+
       if (reset || pageNum === 1) {
-        setParts(resultado.data);
+        setParts(items);
       } else {
-        setParts(prev => [...prev, ...resultado.data]);
+        setParts(prev => [...(Array.isArray(prev) ? prev : []), ...items]);
       }
-      setHasNextPage(resultado.meta.hasNextPage);
- 
+
+      const meta = resultado?.meta || resultado?.pagination || {};
+      setHasNextPage(Boolean(meta.hasNextPage ?? meta.has_next_page ?? (items.length === 20)));
+
       // Salva cache só na primeira página sem filtros
       if (pageNum === 1 && !searchAtivo && !veiculoSelecionado) {
-        await salvarCache(CACHE_KEY, { data: resultado.data, savedAt: new Date().toISOString() });
+        await salvarCache(CACHE_KEY, { data: items, savedAt: new Date().toISOString() });
       }
     } catch (e) {
       // Falhou — tenta cache como fallback
@@ -255,7 +270,16 @@ export default function PecasScreen({ navigation, route }) {
 
     try {
       const resultado = await fetchParts({ vin, page: 1, limit: 50 });
-      const itens = Array.isArray(resultado.data) ? resultado.data : resultado.data || [];
+      const itens = Array.isArray(resultado)
+        ? resultado
+        : Array.isArray(resultado?.data)
+        ? resultado.data
+        : Array.isArray(resultado?.dados)
+        ? resultado.dados
+        : Array.isArray(resultado?.items)
+        ? resultado.items
+        : [];
+
       setVinResultados(itens);
       setVinSemResultado(itens.length === 0);
     } catch (e) {
@@ -311,7 +335,14 @@ export default function PecasScreen({ navigation, route }) {
     setLoadingVeiculos(true);
     try {
       const res = await fetchVehicles();
-      setVeiculos(Array.isArray(res) ? res : res.data || []);
+      const items = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.data)
+        ? res.data
+        : Array.isArray(res?.vehicles)
+        ? res.vehicles
+        : [];
+      setVeiculos(items);
     } catch {
       setVeiculos([]);
     } finally {

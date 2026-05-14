@@ -30,7 +30,7 @@ export default function PedidosScreen({ navigation }) {
     try {
       setIsLoading(true);
       const data = await pedidoService.listarPedidos();
-      setPedidos(Array.isArray(data) ? data : data.orders || []);
+      setPedidos(Array.isArray(data) ? data : data?.orders || []);
     } catch (error) {
       console.error('Erro ao carregar pedidos:', error);
     } finally {
@@ -64,6 +64,8 @@ export default function PedidosScreen({ navigation }) {
     return `R$ ${parseFloat(valor).toFixed(2)}`;
   };
 
+  const safePedidos = Array.isArray(pedidos) ? pedidos : [];
+
   if (isLoading) {
     return (
       <View style={[styles.container, { justifyContent: 'center' }]}>
@@ -76,7 +78,7 @@ export default function PedidosScreen({ navigation }) {
     <View style={styles.container}>
       <Text style={styles.title}>Meus Pedidos</Text>
 
-      {pedidos.length === 0 ? (
+      {safePedidos.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="bag-outline" size={64} color="#ccc" />
           <Text style={styles.emptyText}>Nenhum pedido realizado</Text>
@@ -89,7 +91,7 @@ export default function PedidosScreen({ navigation }) {
         </View>
       ) : (
         <FlatList
-          data={pedidos}
+          data={safePedidos}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => {
             const statusInfo = getStatusConfig(item.status);
