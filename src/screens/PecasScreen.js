@@ -7,51 +7,84 @@ import {
   Vibration,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import SkeletonBox from '../components/SkeletonBox';
 import { theme } from '../utils/theme';
 import { fetchParts, fetchVehicles } from '../services/api';
 import { salvarCache, carregarCache } from '../utils/cache';
 import { useConectividade } from '../hooks/useConectividade';
  
-const CARD_WIDTH = (Dimensions.get('window').width - 48) / 2;
 const PLACEHOLDER = 'https://via.placeholder.com/300x200/1B3A6B/FFFFFF?text=AutoTruck';
 const CACHE_KEY = 'pecas_catalogo';
  
 // ─── Card de peça ─────────────────────────────────────────────────────────────
 function PartCard({ item, onPress, compatible }) {
+  const [badgeScale] = useState(() => new Animated.Value(1));
+  const availability = item.disponibilidade
+    ? item.disponibilidade
+    : item.disponivel
+      ? 'Disponível'
+      : 'Indisponível';
+  const isDisponivel = availability === 'Disponível';
+
+  useEffect(() => {
+    if (!isDisponivel) return;
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(badgeScale, { toValue: 1.08, duration: 900, useNativeDriver: true }),
+        Animated.timing(badgeScale, { toValue: 1.0, duration: 900, useNativeDriver: true }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [badgeScale, isDisponivel]);
+
+  const badgeStyles = {
+    'Disponível': [styles.badge, styles.badgeDisponivel],
+    'Indisponível': [styles.badge, styles.badgeIndisponivel],
+    'Sob consulta': [styles.badge, styles.badgeConsulta],
+  }[availability] || [styles.badge, styles.badgeIndisponivel];
+
+  const badgeTextStyle = {
+    'Disponível': styles.badgeTextDisponivel,
+    'Indisponível': styles.badgeTextIndisponivel,
+    'Sob consulta': styles.badgeTextConsulta,
+  }[availability] || styles.badgeTextIndisponivel;
+
   const preco = Number(item.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
- 
+
   return (
-    <TouchableOpacity style={styles.card} onPress={() => onPress(item)} activeOpacity={0.85}>
+    <TouchableOpacity style={styles.card} onPress={() => onPress(item)} activeOpacity={0.86}>
       <Image source={{ uri: item.foto_url || PLACEHOLDER }} style={styles.cardImage} resizeMode="cover" />
       <View style={styles.cardBody}>
         <Text style={styles.cardName} numberOfLines={2}>{item.nome}</Text>
+        <Text style={styles.cardCode} numberOfLines={1}>{item.codigo ?? item.referencia ?? `ID ${item.id}`}</Text>
         <Text style={styles.cardPrice}>{preco}</Text>
-        {compatible && (
-          <View style={[styles.badge, styles.badgeVin]}>
-            <Text style={[styles.badgeText, styles.badgeTextVin]}>Compatível com VIN</Text>
+        {isDisponivel ? (
+          <Animated.View style={[...badgeStyles, { transform: [{ scale: badgeScale }] }]}>
+            <Text style={badgeTextStyle}>{availability}</Text>
+          </Animated.View>
+        ) : (
+          <View style={badgeStyles}>
+            <Text style={badgeTextStyle}>{availability}</Text>
           </View>
         )}
-        <View style={[styles.badge, item.disponivel ? styles.badgeGreen : styles.badgeRed]}>
-          <Text style={[styles.badgeText, item.disponivel ? styles.badgeTextGreen : styles.badgeTextRed]}>
-            {item.disponivel ? 'Disponível' : 'Esgotado'}
-          </Text>
-        </View>
       </View>
     </TouchableOpacity>
   );
 }
  
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
-function SkeletonCard({ opacity }) {
+function SkeletonCard() {
   return (
-    <Animated.View style={[styles.card, { opacity }]}>
-      <View style={styles.skeletonImage} />
-      <View style={styles.cardBody}>
-        <View style={[styles.skeletonLine, { width: '90%' }]} />
-        <View style={[styles.skeletonLine, { width: '60%' }]} />
-        <View style={[styles.skeletonLine, { width: '40%', height: 20, borderRadius: 10 }]} />
+    <View style={styles.skeletonCard}>
+      <SkeletonBox width={80} height={80} borderRadius={10} />
+      <View style={styles.skeletonDetails}>
+        <SkeletonBox width="90%" height={16} borderRadius={10} />
+        <SkeletonBox width="60%" height={14} borderRadius={10} />
+        <SkeletonBox width="40%" height={18} borderRadius={10} />
       </View>
-    </Animated.View>
+    </View>
   );
 }
  
@@ -74,6 +107,7 @@ export default function PecasScreen({ navigation, route }) {
   const [vinResultados, setVinResultados] = useState([]);
   const [vinBuscando, setVinBuscando] = useState(false);
   const [vinSemResultado, setVinSemResultado] = useState(false);
+  const resultCount = modoBusca === 'vin' ? vinResultados.length : parts.length;
  
   const [veiculos, setVeiculos] = useState([]);
   const [veiculoSelecionado, setVeiculoSelecionado] = useState(null);
@@ -249,7 +283,7 @@ export default function PecasScreen({ navigation, route }) {
       }
     }
 
-    navigation.navigate('Scanner');
+    navigation.navigate('ScannerPeca');
   }
 
   function selecionarModoBusca(value) {
@@ -353,10 +387,15 @@ export default function PecasScreen({ navigation, route }) {
   return (
     <View style={styles.container}>
  
-      {/* Cabeçalho */}
-      <View style={styles.header}>
+      <LinearGradient
+        colors={['#1B3A6B', '#2A5298']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <Text style={styles.headerTitulo}>Catálogo de Peças</Text>
-      </View>
+        <Text style={styles.headerSubtitle}>{resultCount} peças encontradas</Text>
+      </LinearGradient>
  
       {/* Banner offline */}
       {offline && !semCache && (
@@ -372,7 +411,7 @@ export default function PecasScreen({ navigation, route }) {
         <>
           <View style={styles.buscaWrapper}>
             <View style={styles.buscaContainer}>
-              <Text>🔍 </Text>
+              <Ionicons name="search" size={20} color={theme.colors.disabledText} style={styles.searchIcon} />
               <TextInput
                 style={styles.buscaInput}
                 placeholder={modoBusca === 'vin' ? 'Digite o VIN do veículo' : 'Buscar peça...'}
@@ -384,12 +423,7 @@ export default function PecasScreen({ navigation, route }) {
               />
               {modoBusca === 'catalogo' && (
                 <TouchableOpacity onPress={handlePressScanner} style={styles.cameraButton}>
-                  <Ionicons name="barcode-outline" size={22} color={theme.colors.primary} />
-                </TouchableOpacity>
-              )}
-              {modoBusca === 'catalogo' && search.length > 0 && (
-                <TouchableOpacity onPress={() => setSearch('')}>
-                  <Text style={styles.clearBtn}>✕</Text>
+                  <Ionicons name="camera-outline" size={22} color={theme.colors.primary} />
                 </TouchableOpacity>
               )}
             </View>
@@ -462,11 +496,10 @@ export default function PecasScreen({ navigation, route }) {
       {/* Skeleton */}
       {loading && !error && (
         <View style={styles.grid}>
-          {[...Array(6)].map((_, i) => <SkeletonCard key={i} opacity={pulseAnim} />)}
+          {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
         </View>
       )}
  
-      {/* Lista */}
       {!loading && !error && !(modoBusca === 'vin' && vinBuscando) && (
         <FlatList
           data={modoBusca === 'vin' ? vinResultados : parts}
@@ -478,16 +511,22 @@ export default function PecasScreen({ navigation, route }) {
               onPress={item => navigation.navigate('DetalhePeca', { partId: item.id })}
             />
           )}
-          numColumns={2}
           contentContainerStyle={styles.listaContent}
-          columnWrapperStyle={styles.coluna}
+          showsVerticalScrollIndicator={false}
           onEndReached={modoBusca === 'vin' ? null : handleLoadMore}
           onEndReachedThreshold={0.4}
-          showsVerticalScrollIndicator={false}
-          ListFooterComponent={loadingMore && modoBusca === 'catalogo' ? <ActivityIndicator color={theme.colors.accent} style={{ marginVertical: 16 }} /> : <View style={{ height: 24 }} />}
+          ListFooterComponent={loadingMore && modoBusca === 'catalogo' ? <ActivityIndicator color={theme.colors.accent} style={styles.footerLoader} /> : <View style={styles.footerSpacer} />}
           ListEmptyComponent={renderEmpty}
         />
       )}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate('SolicitarOrcamento')}
+        accessibilityLabel="Solicitar orçamento"
+        activeOpacity={0.85}
+      >
+        <Ionicons name="add" size={28} color="#FFF" />
+      </TouchableOpacity>
  
       {/* Modal de veículos */}
       <Modal visible={modalAberto} transparent animationType="slide" onRequestClose={() => setModalAberto(false)}>
@@ -550,49 +589,56 @@ export default function PecasScreen({ navigation, route }) {
 // ─── Estilos ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
- 
+
   header: {
-    paddingTop: Platform.OS === 'ios' ? 56 : 48,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
-    backgroundColor: theme.colors.primary,
+    paddingTop: Platform.OS === 'ios' ? 60 : 48,
+    paddingBottom: 22,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
   },
-  headerTitulo: { fontSize: 22, fontWeight: '800', color: '#FFF' },
- 
+  headerTitulo: { ...theme.typography.h2, color: '#FFF' },
+  headerSubtitle: { marginTop: 8, ...theme.typography.body, color: 'rgba(255,255,255,0.88)' },
+
   bannerOffline: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 16,
     backgroundColor: '#FEF9C3',
-    borderBottomWidth: 1,
-    borderBottomColor: '#FDE68A',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    padding: 12,
   },
   bannerOfflineText: { fontSize: 12, color: '#92400E', fontWeight: '600', textAlign: 'center' },
- 
+
   buscaWrapper: {
+    paddingTop: 16,
     paddingHorizontal: 16,
-    paddingTop: 12,
     paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
   },
   buscaContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.inputBackground,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 44,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surfaceElevated,
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: 16,
+    height: 52,
+    ...theme.shadow.sm,
   },
-  buscaInput: { flex: 1, fontSize: 15, color: theme.colors.text, padding: 0 },
-  cameraButton: { marginLeft: 10, padding: 6 },
-  clearBtn: { fontSize: 13, color: theme.colors.disabledText, paddingLeft: 8 },
-  buscandoText: { fontSize: 12, color: theme.colors.disabledText, marginTop: 6, fontStyle: 'italic' },
+  searchIcon: { marginRight: 12 },
+  buscaInput: { flex: 1, color: theme.colors.text, ...theme.typography.body, padding: 0 },
+  cameraButton: {
+    marginLeft: 12,
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  buscandoText: { fontSize: 12, color: theme.colors.disabledText, marginTop: 8, fontStyle: 'italic' },
+
   modeToggle: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 10,
+    marginTop: 12,
     paddingHorizontal: 16,
   },
   modeChip: {
@@ -600,98 +646,112 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderRadius: 999,
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: 'center',
-    backgroundColor: theme.colors.inputBackground,
+    backgroundColor: theme.colors.surfaceElevated,
   },
   modeChipActive: {
     backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
   },
   modeChipText: {
-    fontSize: 13,
+    ...theme.typography.bodySmall,
     color: theme.colors.disabledText,
-    fontWeight: '600',
   },
   modeChipTextActive: {
     color: '#FFF',
   },
- 
+
   seletorVeiculo: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: theme.colors.inputBackground,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    paddingVertical: 14,
+    marginTop: 12,
+    backgroundColor: theme.colors.surfaceElevated,
+    borderRadius: theme.radius.lg,
+    ...theme.shadow.sm,
   },
-  seletorTexto: { flex: 1, fontSize: 14, color: theme.colors.disabledText },
-  seletorTextoAtivo: { color: theme.colors.primary, fontWeight: '600' },
-  seletorSeta: { fontSize: 12, color: theme.colors.disabledText },
- 
+  seletorTexto: { flex: 1, ...theme.typography.body, color: theme.colors.disabledText },
+  seletorTextoAtivo: { color: theme.colors.primary, fontWeight: '700' },
+  seletorSeta: { fontSize: 12, color: theme.colors.disabledText, marginLeft: 8 },
+
   bannerVeiculo: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: theme.colors.primaryAlpha10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#EFF6FF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#BFDBFE',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
   },
-  bannerVeiculoText: { fontSize: 13, color: '#1D4ED8', fontWeight: '600', flex: 1 },
-  bannerVeiculoX: { fontSize: 13, color: '#1D4ED8', paddingLeft: 12, fontWeight: '700' },
- 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, paddingTop: 12, gap: 16 },
-  listaContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
-  coluna: { gap: 16, marginBottom: 16 },
- 
+  bannerVeiculoText: { flex: 1, ...theme.typography.body, color: theme.colors.primary },
+  bannerVeiculoX: { marginLeft: 12, ...theme.typography.label, color: theme.colors.primary },
+
+  grid: { paddingHorizontal: 16, paddingTop: 16 },
+  listaContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 140 },
+  footerLoader: { marginVertical: 16 },
+  footerSpacer: { height: 24 },
+
   card: {
-    width: CARD_WIDTH,
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFF',
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    borderRadius: theme.radius.lg,
+    padding: 16,
+    marginBottom: 16,
+    ...theme.shadow.md,
   },
-  cardImage: { width: '100%', height: 110, backgroundColor: theme.colors.inputBackground },
-  cardBody: { padding: 10 },
-  cardName: { fontSize: 13, fontWeight: '600', color: theme.colors.text, lineHeight: 18, marginBottom: 6 },
-  cardPrice: { fontSize: 15, fontWeight: '800', color: theme.colors.accent, marginBottom: 8 },
- 
-  badge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, marginBottom: 6 },
-  badgeGreen: { backgroundColor: '#DCFCE7' },
-  badgeRed: { backgroundColor: '#FEE2E2' },
-  badgeVin: { backgroundColor: '#FDE68A' },
-  badgeText: { fontSize: 11, fontWeight: '700' },
-  badgeTextGreen: { color: '#16A34A' },
-  badgeTextRed: { color: theme.colors.error },
-  badgeTextVin: { color: '#92400E' },
- 
-  skeletonImage: { width: '100%', height: 110, backgroundColor: theme.colors.border },
-  skeletonLine: { height: 13, backgroundColor: theme.colors.border, borderRadius: 6, marginBottom: 8 },
- 
+  cardImage: { width: 80, height: 80, borderRadius: 10, backgroundColor: theme.colors.surfaceElevated, marginRight: 16 },
+  cardBody: { flex: 1 },
+  cardName: { ...theme.typography.body, fontWeight: '600', color: theme.colors.text, marginBottom: 6 },
+  cardCode: { ...theme.typography.caption, color: theme.colors.disabledText, marginBottom: 8 },
+  cardPrice: { ...theme.typography.h3, color: '#FF9500', marginBottom: 8 },
+
+  badge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: theme.radius.full, marginTop: 4 },
+  badgeDisponivel: { backgroundColor: '#0D3320' },
+  badgeIndisponivel: { backgroundColor: '#3A1010' },
+  badgeConsulta: { backgroundColor: '#2A2000' },
+  badgeTextDisponivel: { ...theme.typography.caption, color: '#30D158', fontWeight: '700' },
+  badgeTextIndisponivel: { ...theme.typography.caption, color: '#FF453A', fontWeight: '700' },
+  badgeTextConsulta: { ...theme.typography.caption, color: '#FFD60A', fontWeight: '700' },
+
+  skeletonCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.radius.lg,
+    padding: 16,
+    marginBottom: 16,
+    ...theme.shadow.sm,
+  },
+  skeletonDetails: {
+    flex: 1,
+    marginLeft: 16,
+    justifyContent: 'space-between',
+    height: 80,
+  },
+
   centro: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 },
   emptyIcon: { fontSize: 44, marginBottom: 14 },
-  emptyTitulo: { fontSize: 16, fontWeight: '700', color: theme.colors.text, marginBottom: 12, textAlign: 'center', lineHeight: 24 },
-  emptySubtitle: { fontSize: 14, color: theme.colors.disabledText, textAlign: 'center' },
-  emptySubtitle: { fontSize: 14, color: theme.colors.disabledText, textAlign: 'center' },
- 
+  emptyTitulo: { ...theme.typography.h3, color: theme.colors.text, marginBottom: 12, textAlign: 'center', lineHeight: 24 },
+  emptySubtitle: { ...theme.typography.body, color: theme.colors.disabledText, textAlign: 'center' },
+
   btnLaranja: { backgroundColor: theme.colors.accent, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10, marginTop: 8 },
   btnLaranjaText: { color: '#FFF', fontWeight: '700', fontSize: 14, textAlign: 'center' },
- 
+
   erroBox: {
-    margin: 16, padding: 16, backgroundColor: '#FEE2E2',
-    borderRadius: 10, alignItems: 'center', borderWidth: 1, borderColor: '#FECACA',
+    margin: 16,
+    padding: 16,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
   erroText: { color: theme.colors.error, fontSize: 14, textAlign: 'center', marginBottom: 12 },
- 
+
   modalFundo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalBox: {
     backgroundColor: '#FFF',
@@ -701,21 +761,43 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 32 : 16,
   },
   modalTopo: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 16,
-    borderBottomWidth: 1, borderBottomColor: theme.colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   modalTitulo: { fontSize: 17, fontWeight: '700', color: theme.colors.text },
   modalFechar: { fontSize: 16, color: theme.colors.disabledText, padding: 4 },
- 
+
   opcaoVeiculo: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: theme.colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   opcaoAtiva: { backgroundColor: '#EFF6FF' },
   opcaoTexto: { fontSize: 15, color: theme.colors.text, fontWeight: '500' },
   opcaoTextoAtivo: { color: theme.colors.primary, fontWeight: '700' },
   opcaoPlaca: { fontSize: 12, color: theme.colors.disabledText, marginTop: 2 },
   check: { fontSize: 16, color: theme.colors.primary, fontWeight: '700' },
+
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FF9500',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...theme.shadow.lg,
+    zIndex: 10,
+  },
 });
