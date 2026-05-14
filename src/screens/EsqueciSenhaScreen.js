@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -8,6 +8,8 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Animated,
+  Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -17,31 +19,46 @@ import { theme } from '../utils/theme';
 export default function EsqueciSenhaScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [feedback, setFeedback] = useState(null);
+  const [step, setStep] = useState(1);
+  const [serverMessage, setServerMessage] = useState('');
+  const [fieldError, setFieldError] = useState('');
+
+  const entrance = useRef(new Animated.Value(0)).current;
+  const envelopeScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(entrance, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, []);
+
+  useEffect(() => {
+    if (step === 2) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(envelopeScale, { toValue: 1.06, duration: 600, useNativeDriver: true }),
+          Animated.timing(envelopeScale, { toValue: 1.0, duration: 600, useNativeDriver: true }),
+        ])
+      ).start();
+    }
+  }, [step]);
 
   const canSubmit = email.trim().includes('@') && email.trim().includes('.');
 
   async function enviarRecuperacao() {
-    if (!canSubmit || loading) return;
+    setFieldError('');
+    setServerMessage('');
+    if (!canSubmit || loading) {
+      if (!canSubmit) setFieldError('Informe um e-mail válido');
+      return;
+    }
 
     try {
       setLoading(true);
       const response = await api.post('/auth/forgot-password', { email: email.trim() });
-      setFeedback({
-        type: 'success',
-        message:
-          response?.data?.message ||
-          'Se o e-mail estiver cadastrado, enviaremos as instruções para recuperar sua senha.',
-      });
+      setServerMessage(response?.data?.message || 'Se o e-mail estiver cadastrado, enviaremos as instruções.');
+      setStep(2);
     } catch (error) {
-      const message =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        'Não foi possível solicitar a recuperação de senha.';
-      setFeedback({
-        type: 'error',
-        message: Array.isArray(message) ? message.join('\n') : message,
-      });
+      const message = error?.response?.data?.message || error?.response?.data?.error || 'Não foi possível solicitar a recuperação de senha.';
+      setServerMessage(Array.isArray(message) ? message.join('\n') : message);
     } finally {
       setLoading(false);
     }
@@ -49,73 +66,53 @@ export default function EsqueciSenhaScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <View style={styles.content}>
-          <Text style={styles.title}>Recuperar senha</Text>
-          <Text style={styles.subtitle}>
-            Informe seu e-mail para receber as instruções de recuperação.
-          </Text>
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Animated.View style={[styles.content, { opacity: entrance, transform: [{ translateY: entrance.interpolate({ inputRange: [0,1], outputRange: [18,0] }) }] }]}> 
+          {step === 1 ? (
+            <>
+              <Animated.View style={styles.iconWrap}>
+                <Animated.View style={{ transform: [{ scale: entrance.interpolate({ inputRange: [0,1], outputRange: [0.92, 1] }) }] }}>
+                  <Text style={styles.lockIcon}>🔒</Text>
+                </Animated.View>
+              </Animated.View>
 
-          <Text style={styles.label}>E-mail</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Digite seu e-mail"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            value={email}
-            onChangeText={(value) => {
-              setEmail(value);
-              setFeedback(null);
-            }}
-            editable={!loading}
-          />
+              <Text style={styles.title}>Recuperar senha</Text>
+              <Text style={styles.subtitle}>Informe seu e-mail para receber as instruções de recuperação.</Text>
 
-          {feedback ? (
-            <View
-              style={[
-                styles.feedback,
-                feedback.type === 'success' ? styles.feedbackSuccess : styles.feedbackError,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.feedbackText,
-                  feedback.type === 'success'
-                    ? styles.feedbackTextSuccess
-                    : styles.feedbackTextError,
-                ]}
-              >
-                {feedback.message}
-              </Text>
-            </View>
-          ) : null}
+              <Text style={styles.label}>E-mail</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Digite seu e-mail"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={email}
+                onChangeText={(value) => {
+                  setEmail(value);
+                  setFieldError('');
+                  setServerMessage('');
+                }}
+                editable={!loading}
+              />
+              {fieldError ? <Text style={styles.fieldError}>{fieldError}</Text> : null}
 
-          <TouchableOpacity
-            style={[styles.button, (!canSubmit || loading) && styles.buttonDisabled]}
-            onPress={enviarRecuperacao}
-            disabled={!canSubmit || loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.buttonText}>Enviar instruções</Text>
-            )}
-          </TouchableOpacity>
+              <TouchableOpacity style={[styles.button, (!canSubmit || loading) && styles.buttonDisabled]} onPress={enviarRecuperacao} disabled={!canSubmit || loading}>
+                {loading ? <ActivityIndicator color={theme.colors.background} /> : <Text style={styles.buttonText}>Enviar instruções</Text>}
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Animated.View style={[styles.envelopeWrap, { transform: [{ scale: envelopeScale }] }]}> 
+                <Text style={styles.envelopeIcon}>✉️</Text>
+              </Animated.View>
 
-          {feedback?.type === 'success' ? (
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-              disabled={loading}
-            >
-              <Text style={styles.backButtonText}>Voltar para login</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
+              <Text style={styles.title}>Verifique seu e-mail</Text>
+              <Text style={styles.subtitle}>{serverMessage || 'Enviamos as instruções para recuperar sua senha.'}</Text>
+
+              <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} disabled={loading}><Text style={styles.backButtonText}>Voltar ao login</Text></TouchableOpacity>
+            </>
+          )}
+        </Animated.View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -124,68 +121,20 @@ export default function EsqueciSenhaScreen({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: theme.colors.background },
   container: { flex: 1 },
-  content: { flex: 1, paddingHorizontal: 24, paddingTop: 32 },
-  title: { fontSize: 28, fontWeight: '800', color: theme.colors.primary, marginBottom: 8 },
-  subtitle: { fontSize: 15, color: '#64748B', lineHeight: 22, marginBottom: 28 },
-  label: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: theme.colors.primary,
-    marginBottom: 6,
-    marginLeft: 2,
-  },
-  input: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: theme.colors.text,
-  },
-  feedback: {
-    marginTop: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  feedbackSuccess: {
-    backgroundColor: '#ECFDF5',
-    borderColor: '#86EFAC',
-  },
-  feedbackError: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FCA5A5',
-  },
-  feedbackText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  feedbackTextSuccess: {
-    color: '#166534',
-  },
-  feedbackTextError: {
-    color: '#B91C1C',
-  },
-  button: {
-    marginTop: 18,
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: theme.colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonDisabled: { opacity: 0.7 },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  backButton: {
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  backButtonText: {
-    color: theme.colors.primary,
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  content: { flex: 1, paddingHorizontal: 24, paddingTop: 32, alignItems: 'center' },
+  iconWrap: { marginBottom: 8 },
+  lockIcon: { fontSize: 48 },
+  envelopeWrap: { marginBottom: 12 },
+  envelopeIcon: { fontSize: 48 },
+  title: { ...theme.typography.h1, color: theme.colors.primary, marginBottom: 8, textAlign: 'center' },
+  subtitle: { fontSize: theme.typography.body.fontSize, color: theme.colors.disabledText, lineHeight: 22, marginBottom: 18, textAlign: 'center' },
+  label: { ...theme.typography.label, color: theme.colors.primary, alignSelf: 'flex-start', marginBottom: 6 },
+  input: { width: '100%', backgroundColor: theme.colors.inputBackground, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 14, fontSize: theme.typography.body.fontSize, color: theme.colors.text },
+  button: { marginTop: 18, height: 52, width: '100%', borderRadius: 12, backgroundColor: theme.colors.accent, alignItems: 'center', justifyContent: 'center' },
+  buttonDisabled: { opacity: 0.5 },
+  buttonText: { color: theme.colors.background, fontSize: 16, fontWeight: '700' },
+  fieldError: { color: theme.colors.error, marginTop: 8 },
+  serverError: { color: theme.colors.error, marginTop: 12 },
+  backButton: { marginTop: 16 },
+  backButtonText: { color: theme.colors.primary, fontWeight: '700' },
 });
