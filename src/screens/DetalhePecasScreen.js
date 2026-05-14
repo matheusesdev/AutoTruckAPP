@@ -11,15 +11,45 @@ import {
   Platform,
   Animated,
   Alert,
+  FlatList,
+  Easing,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../utils/theme';
 import { fetchPartById } from '../services/api';
- 
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const PHOTO_HEIGHT = 250;
+const PHOTO_HEIGHT = 280;
 const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/800x500/1B3A6B/FFFFFF?text=AutoTruck';
- 
-// ─── Chip de compatibilidade ──────────────────────────────────────────────────
+
+const RELATED_PARTS = [
+  {
+    id: 'rel-1',
+    nome: 'Filtro de óleo XLS',
+    preco: '89.90',
+    foto: 'https://via.placeholder.com/120x90/3A4A89/FFFFFF?text=Filtro',
+  },
+  {
+    id: 'rel-2',
+    nome: 'Pastilha de freio Pro',
+    preco: '199.90',
+    foto: 'https://via.placeholder.com/120x90/4B5BA8/FFFFFF?text=Freio',
+  },
+  {
+    id: 'rel-3',
+    nome: 'Bateria Cargo 100Ah',
+    preco: '459.00',
+    foto: 'https://via.placeholder.com/120x90/2A3B6B/FFFFFF?text=Bateria',
+  },
+  {
+    id: 'rel-4',
+    nome: 'Lâmpada LED H7',
+    preco: '129.50',
+    foto: 'https://via.placeholder.com/120x90/223355/FFFFFF?text=Lâmpada',
+  },
+];
+
 const CompatibilityChip = ({ item }) => (
   <View style={styles.chip}>
     <Text style={styles.chipText}>
@@ -27,30 +57,43 @@ const CompatibilityChip = ({ item }) => (
     </Text>
   </View>
 );
- 
-// ─── Cabeçalho de seção ───────────────────────────────────────────────────────
+
 const SectionHeader = ({ title }) => (
   <View style={styles.sectionHeader}>
     <View style={styles.sectionAccent} />
     <Text style={styles.sectionTitle}>{title}</Text>
   </View>
 );
- 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+
 export default function DetalhePecaScreen({ route, navigation }) {
   const { partId } = route.params;
   const [part, setPart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
- 
+
   const scrollY = useRef(new Animated.Value(0)).current;
- 
+  const heroOpacity = useRef(new Animated.Value(0)).current;
+  const contentTranslateY = useRef(new Animated.Value(40)).current;
+  const priceAnimation = useRef(new Animated.Value(0)).current;
+
+  const heroTranslateY = scrollY.interpolate({
+    inputRange: [0, 200],
+    outputRange: [0, 80],
+    extrapolate: 'clamp',
+  });
+
+  const heroScale = scrollY.interpolate({
+    inputRange: [0, 200],
+    outputRange: [1, 1.1],
+    extrapolate: 'clamp',
+  });
+
   const backOpacity = scrollY.interpolate({
     inputRange: [0, 80],
     outputRange: [1, 0.6],
     extrapolate: 'clamp',
   });
- 
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -64,9 +107,39 @@ export default function DetalhePecaScreen({ route, navigation }) {
         setLoading(false);
       }
     };
+
     load();
   }, [partId]);
- 
+
+  useEffect(() => {
+    if (!part) return;
+
+    heroOpacity.setValue(0);
+    contentTranslateY.setValue(40);
+    priceAnimation.setValue(0);
+
+    Animated.parallel([
+      Animated.timing(heroOpacity, {
+        toValue: 1,
+        duration: 320,
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentTranslateY, {
+        toValue: 0,
+        duration: 380,
+        delay: 80,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(priceAnimation, {
+        toValue: Number(part.preco) || 0,
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [part, contentTranslateY, heroOpacity, priceAnimation]);
+
   const handleSolicitarOrcamento = () => {
     Alert.alert(
       'Solicitar Orçamento',
@@ -80,12 +153,18 @@ export default function DetalhePecaScreen({ route, navigation }) {
       ]
     );
   };
- 
-  const handleComprar = () => {
-    Alert.alert('Em breve', 'A funcionalidade de compra estará disponível em breve.');
-  };
- 
-  // Loading
+
+  const formattedPrice = Number(part?.preco || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+
+  const animatedPrice = priceAnimation.interpolate({
+    inputRange: [0, Number(part?.preco || 0)],
+    outputRange: ['R$ 0,00', formattedPrice],
+    extrapolate: 'clamp',
+  });
+
   if (loading) {
     return (
       <View style={styles.centeredContainer}>
@@ -94,12 +173,11 @@ export default function DetalhePecaScreen({ route, navigation }) {
       </View>
     );
   }
- 
-  // Erro
+
   if (error || !part) {
     return (
       <View style={styles.centeredContainer}>
-        <Text style={styles.errorIcon}>⚠️</Text>
+        <Text style={styles.errorIcon}>←</Text>
         <Text style={styles.errorTitle}>Algo deu errado</Text>
         <Text style={styles.errorMessage}>{error}</Text>
         <TouchableOpacity style={styles.backButtonFallback} onPress={() => navigation.goBack()}>
@@ -108,15 +186,9 @@ export default function DetalhePecaScreen({ route, navigation }) {
       </View>
     );
   }
- 
-  const formattedPrice = Number(part.preco).toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
- 
+
   return (
     <View style={styles.container}>
-      {/* Conteúdo rolável */}
       <Animated.ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -126,86 +198,99 @@ export default function DetalhePecaScreen({ route, navigation }) {
         )}
         scrollEventThrottle={16}
       >
-        {/* Foto hero */}
-        <View style={styles.heroContainer}>
-          <Image
+        <Animated.View style={[styles.heroContainer, { opacity: heroOpacity }]}> 
+          <Animated.Image
             source={{ uri: part.foto_url || PLACEHOLDER_IMAGE }}
-            style={styles.heroImage}
+            style={[styles.heroImage, { transform: [{ translateY: heroTranslateY }, { scale: heroScale }] }]}
             resizeMode="cover"
           />
-          <View style={styles.heroGradient} />
-        </View>
- 
-        {/* Card de conteúdo */}
-        <View style={styles.contentCard}>
-          {/* Nome */}
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.65)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.heroGradient}
+          />
+        </Animated.View>
+
+        <Animated.View style={[styles.contentCard, { transform: [{ translateY: contentTranslateY }] }]}> 
           <Text style={styles.partName}>{part.nome}</Text>
- 
-          {/* Preço + badge estoque */}
+
           <View style={styles.priceRow}>
-            <Text style={styles.partPrice}>{formattedPrice}</Text>
+            <Animated.Text style={styles.partPrice}>{animatedPrice}</Animated.Text>
             <View style={[styles.stockBadge, part.disponivel ? styles.stockAvailable : styles.stockUnavailable]}>
               <Text style={[styles.stockText, part.disponivel ? styles.stockTextAvailable : styles.stockTextUnavailable]}>
                 {part.disponivel ? `${part.estoque} em estoque` : 'Esgotado'}
               </Text>
             </View>
           </View>
- 
+
           <View style={styles.divider} />
- 
-          {/* Descrição */}
-          <SectionHeader title="Descrição" />
+
+          <Text style={styles.sectionTitleBlock}>Descrição</Text>
           <Text style={styles.descriptionText}>{part.descricao}</Text>
- 
+
           <View style={styles.divider} />
- 
-          {/* Compatibilidade */}
-          <SectionHeader title="Compatível com" />
-          <View style={styles.chipsContainer}>
+
+          <Text style={styles.sectionTitleBlock}>Compatível com</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsContainer}>
             {part.compatibilidade.map((comp, index) => (
               <CompatibilityChip key={index} item={comp} />
             ))}
+          </ScrollView>
+
+          <View style={styles.ratingRow}>
+            {[...Array(3)].map((_, index) => (
+              <Ionicons key={`full-${index}`} name="star" size={16} color="#FFD60A" style={styles.starIcon} />
+            ))}
+            {[...Array(2)].map((_, index) => (
+              <Ionicons key={`empty-${index}`} name="star-outline" size={16} color="#555" style={styles.starIcon} />
+            ))}
+            <Text style={styles.ratingText}>(sem avaliações ainda)</Text>
           </View>
- 
-          {/* Espaço para o footer fixo */}
-          <View style={{ height: part.disponivel ? 110 : 80 }} />
-        </View>
+
+          <Text style={styles.relatedTitle}>Peças relacionadas</Text>
+          <FlatList
+            data={RELATED_PARTS}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.relatedList}
+            renderItem={({ item }) => (
+              <View style={styles.relatedCard}>
+                <Image source={{ uri: item.foto }} style={styles.relatedImage} resizeMode="cover" />
+                <Text style={styles.relatedName} numberOfLines={2}>{item.nome}</Text>
+                <Text style={styles.relatedPrice}>R$ {Number(item.preco).toFixed(2)}</Text>
+              </View>
+            )}
+          />
+
+          <View style={styles.bottomSpacer} />
+        </Animated.View>
       </Animated.ScrollView>
- 
-      {/* Botão voltar flutuante */}
-      <Animated.View style={[styles.floatingBack, { opacity: backOpacity }]}>
+
+      <Animated.View style={[styles.floatingBack, { opacity: backOpacity }]}> 
         <TouchableOpacity style={styles.floatingBackButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
           <Text style={styles.floatingBackIcon}>←</Text>
         </TouchableOpacity>
       </Animated.View>
- 
-      {/* Footer fixo */}
+
       <View style={styles.footer}>
-        {part.disponivel && (
-          <TouchableOpacity style={styles.btnComprar} onPress={handleComprar} activeOpacity={0.8}>
-            <Text style={styles.btnComprarText}>Comprar</Text>
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          style={[styles.btnOrcamento, !part.disponivel && { flex: 1 }]}
-          onPress={handleSolicitarOrcamento}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.btnOrcamentoText}>📋 Solicitar Orçamento</Text>
+        <TouchableOpacity style={styles.btnCart} disabled>
+          <Ionicons name="cart-outline" size={20} color="#FFF" />
+          <Text style={styles.btnCartText}>Adicionar ao Carrinho</Text>
         </TouchableOpacity>
+        <Text style={styles.cartTooltip}>Disponível em breve (AT-30)</Text>
       </View>
     </View>
   );
 }
- 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
   },
- 
-  // Estados centralizados
+
   centeredContainer: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -242,26 +327,27 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 15,
   },
- 
+
   scroll: { flex: 1 },
- 
-  // Hero
+
   heroContainer: {
     width: SCREEN_WIDTH,
     height: PHOTO_HEIGHT,
     position: 'relative',
+    overflow: 'hidden',
   },
-  heroImage: { width: '100%', height: '100%' },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
   heroGradient: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
-    height: 70,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    bottom: 0,
+    height: 140,
   },
- 
-  // Botão voltar flutuante
+
   floatingBack: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 54 : 36,
@@ -282,22 +368,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 22,
   },
- 
-  // Card de conteúdo
+
   contentCard: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    marginTop: -16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -24,
     paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingTop: 28,
+    paddingBottom: 8,
   },
   partName: {
-    fontSize: 21,
-    fontWeight: '800',
-    color: theme.colors.text,
-    lineHeight: 28,
+    fontSize: theme.typography.h2.fontSize,
+    fontWeight: theme.typography.h2.fontWeight,
+    color: '#111',
+    lineHeight: theme.typography.h2.lineHeight,
     marginBottom: 14,
   },
   priceRow: {
@@ -309,31 +395,30 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   partPrice: {
-    fontSize: 30,
-    fontWeight: '900',
-    color: theme.colors.accent,
+    fontSize: theme.typography.h2.fontSize,
+    fontWeight: '800',
+    color: '#FF9500',
   },
- 
-  // Badge estoque
+
   stockBadge: {
     paddingHorizontal: 12,
     paddingVertical: 5,
-    borderRadius: 20,
+    borderRadius: theme.radius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   stockAvailable: { backgroundColor: '#DCFCE7' },
   stockUnavailable: { backgroundColor: '#FEE2E2' },
   stockText: { fontSize: 12, fontWeight: '700' },
   stockTextAvailable: { color: '#16A34A' },
   stockTextUnavailable: { color: theme.colors.error },
- 
-  // Divisor
+
   divider: {
     height: 1,
     backgroundColor: theme.colors.border,
     marginVertical: 20,
   },
- 
-  // Seção
+
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -353,74 +438,128 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
- 
-  // Descrição
-  descriptionText: {
-    fontSize: 15,
+  sectionTitleBlock: {
+    fontSize: theme.typography.h3.fontSize,
+    fontWeight: theme.typography.h3.fontWeight,
     color: theme.colors.text,
-    lineHeight: 24,
+    marginBottom: 12,
   },
- 
-  // Chips
+
+  descriptionText: {
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.text,
+    lineHeight: theme.typography.body.lineHeight,
+  },
+
   chipsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    paddingVertical: 8,
+    paddingRight: 16,
   },
   chip: {
-    backgroundColor: '#EFF6FF',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: theme.radius.full,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    borderColor: '#2A5298',
+    backgroundColor: '#0D1F3C',
+    marginRight: 8,
   },
   chipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#1D4ED8',
+    fontSize: theme.typography.label.fontSize,
+    fontWeight: theme.typography.label.fontWeight,
+    color: '#7FA8D8',
   },
- 
-  // Footer
-  footer: {
+
+  ratingRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    opacity: 0.7,
+    marginBottom: 18,
+  },
+  starIcon: {
+    marginRight: 4,
+  },
+  ratingText: {
+    marginLeft: 8,
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.colors.disabledText,
+  },
+
+  relatedTitle: {
+    fontSize: theme.typography.h3.fontSize,
+    fontWeight: theme.typography.h3.fontWeight,
+    color: theme.colors.text,
+    marginBottom: 12,
+  },
+  relatedList: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 14,
+    paddingBottom: 20,
+  },
+  relatedCard: {
+    width: 120,
+    height: 160,
+    borderRadius: 12,
+    backgroundColor: theme.colors.surfaceElevated,
+    marginRight: 12,
+    padding: 10,
+  },
+  relatedImage: {
+    width: '100%',
+    height: 90,
+    borderRadius: 10,
+    backgroundColor: theme.colors.border,
+    marginBottom: 10,
+  },
+  relatedName: {
+    fontSize: theme.typography.bodySmall.fontSize,
+    fontWeight: theme.typography.bodySmall.fontWeight,
+    color: theme.colors.text,
+    lineHeight: theme.typography.bodySmall.lineHeight,
+    marginBottom: 6,
+  },
+  relatedPrice: {
+    fontSize: theme.typography.label.fontSize,
+    fontWeight: theme.typography.label.fontWeight,
+    color: theme.colors.primary,
+  },
+
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 20,
+    paddingTop: 16,
     backgroundColor: theme.colors.background,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
-    gap: 10,
   },
-  btnComprar: {
-    flex: 1,
-    backgroundColor: theme.colors.disabled,
-    paddingVertical: 14,
-    borderRadius: 10,
+  btnCart: {
+    width: '100%',
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: '#FF9500',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    opacity: 0.4,
   },
-  btnComprarText: {
-    color: theme.colors.disabledText,
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  btnOrcamento: {
-    flex: 2,
-    backgroundColor: theme.colors.accent,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 3,
-    shadowColor: theme.colors.accent,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-  },
-  btnOrcamentoText: {
-    color: '#FFFFFF',
+  btnCartText: {
+    color: '#FFF',
     fontWeight: '800',
-    fontSize: 15,
+    fontSize: 16,
+    marginLeft: 10,
+  },
+  cartTooltip: {
+    marginTop: 4,
+    opacity: 0.9,
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.colors.disabledText,
+    textAlign: 'center',
+  },
+
+  bottomSpacer: {
+    height: 110,
   },
 });
