@@ -20,6 +20,15 @@ export default function VeiculosScreen({ navigation }) {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
+  const normalizeVehicles = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (!payload || typeof payload !== 'object') return [];
+    if (Array.isArray(payload.dados)) return payload.dados;
+    if (Array.isArray(payload.vehicles)) return payload.vehicles;
+    if (Array.isArray(payload.data)) return payload.data;
+    return [];
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
@@ -46,13 +55,16 @@ export default function VeiculosScreen({ navigation }) {
         },
       });
 
+      const items = normalizeVehicles(res.data);
+      const totalItems = Number.isFinite(res.data?.total) ? res.data.total : items.length;
+
       if (reset) {
-        setVeiculos(res.data.dados);
+        setVeiculos(items);
       } else {
-        setVeiculos((prev) => [...prev, ...res.data.dados]);
+        setVeiculos((prev) => [...prev, ...items]);
       }
 
-      setTotal(res.data.total);
+      setTotal(totalItems);
       setPage(currentPage + 1);
     } catch (err) {
       console.log(err);
@@ -68,7 +80,7 @@ export default function VeiculosScreen({ navigation }) {
   );
 
   function loadMore() {
-    if (!loadingMore && veiculos.length < total) {
+    if (!loadingMore && Array.isArray(veiculos) && veiculos.length < total) {
       load();
     }
   }

@@ -33,6 +33,43 @@ function resolveApiBaseUrl() {
 
 const API_BASE_URL = resolveApiBaseUrl();
 
+function isNotFound(error) {
+  return error?.response?.status === 404;
+}
+
+function normalizeListPayload(payload, keys = []) {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== 'object') return [];
+
+  for (const key of keys) {
+    if (Array.isArray(payload[key])) return payload[key];
+  }
+
+  if (Array.isArray(payload.data)) return payload.data;
+  if (Array.isArray(payload.items)) return payload.items;
+
+  return [];
+}
+
+async function getWithFallback(paths, config) {
+  let lastError;
+
+  for (const path of paths) {
+    try {
+      const response = await api.get(path, config);
+      return response.data;
+    } catch (error) {
+      lastError = error;
+      if (!isNotFound(error)) {
+        throw error;
+      }
+    }
+  }
+
+  if (lastError) throw lastError;
+  return null;
+}
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
@@ -159,10 +196,12 @@ export const orcamentoService = {
     try {
       const params = {};
       if (status) params.status = status;
-      const response = await api.get('/quotations', { params });
-      return response.data;
+      const data = await getWithFallback(['/quotations', '/quotes', '/orcamentos'], { params });
+      return { quotations: normalizeListPayload(data, ['quotations', 'quotes', 'orcamentos']) };
     } catch (error) {
-      console.error('Erro ao listar orçamentos', error);
+      if (!isNotFound(error)) {
+        console.error('Erro ao listar orçamentos', error);
+      }
       return { quotations: [] };
     }
   },
@@ -190,10 +229,12 @@ export const orcamentoService = {
 export const pedidoService = {
   listarPedidos: async () => {
     try {
-      const response = await api.get('/orders');
-      return response.data;
+      const data = await getWithFallback(['/orders', '/pedidos']);
+      return { orders: normalizeListPayload(data, ['orders', 'pedidos']) };
     } catch (error) {
-      console.error('Erro ao listar pedidos', error);
+      if (!isNotFound(error)) {
+        console.error('Erro ao listar pedidos', error);
+      }
       return { orders: [] };
     }
   },
@@ -221,10 +262,12 @@ export const pedidoService = {
 export const notificacaoService = {
   listarNotificacoes: async () => {
     try {
-      const response = await api.get('/notifications');
-      return response.data;
+      const data = await getWithFallback(['/notifications', '/notificacoes']);
+      return { notifications: normalizeListPayload(data, ['notifications', 'notificacoes']) };
     } catch (error) {
-      console.error('Erro ao listar notificações', error);
+      if (!isNotFound(error)) {
+        console.error('Erro ao listar notificações', error);
+      }
       return { notifications: [] };
     }
   },

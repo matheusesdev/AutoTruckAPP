@@ -12,7 +12,7 @@ export function useVeiculos() {
 
     try {
       const response = await fetchVehicles();
-      const items = Array.isArray(response) ? response : response.vehicles || [];
+      const items = Array.isArray(response) ? response : response?.vehicles || [];
       setVeiculos(items);
     } catch (err) {
       setError(err.message || 'Não foi possível carregar os veículos');

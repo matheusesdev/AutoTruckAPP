@@ -42,6 +42,7 @@ export default function OrcamentosScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('Ativos');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { orcamentos, isLoading, error, refresh } = useOrcamentos();
+  const safeOrcamentos = Array.isArray(orcamentos) ? orcamentos : [];
 
   useFocusEffect(
     useCallback(() => {
@@ -50,13 +51,13 @@ export default function OrcamentosScreen({ navigation }) {
   );
 
   const ativos = useMemo(
-    () => orcamentos.filter((item) => item.status !== 'respondido'),
-    [orcamentos]
+    () => safeOrcamentos.filter((item) => item.status !== 'respondido'),
+    [safeOrcamentos]
   );
 
   const historico = useMemo(
-    () => orcamentos.filter((item) => item.status === 'respondido'),
-    [orcamentos]
+    () => safeOrcamentos.filter((item) => item.status === 'respondido'),
+    [safeOrcamentos]
   );
 
   const visibleOrcamentos = activeTab === 'Ativos' ? ativos : historico;
