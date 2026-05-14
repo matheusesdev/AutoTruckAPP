@@ -16,7 +16,8 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "O app usa a câmera para escanear códigos de peças e VIN."
+        "NSCameraUsageDescription": "O app usa a câmera para escanear códigos de peças e VIN.",
+        "NSPhotoLibraryUsageDescription": "O app acessa a galeria para adicionar fotos de peças nos orçamentos."
       }
     },
     "android": {
@@ -24,6 +25,11 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
       "edgeToEdgeEnabled": true
     },
     "plugins": [
