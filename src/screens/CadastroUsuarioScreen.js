@@ -134,7 +134,12 @@ export default function CadastroUsuarioScreen({ navigation }) {
       await AsyncStorage.setItem('user_data', JSON.stringify(userData));
       setAuthData({ token, user: userData });
 
-      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+      try {
+        navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+      } catch (navErr) {
+        console.error('Navigation reset failed', navErr);
+        setServerError('Conta criada, mas houve um erro ao abrir a tela principal. Reinicie o app.');
+      }
     } catch (error) {
       const rawMessage = error?.response?.data?.message;
       const isNetworkError = !!error?.request && !error?.response;
