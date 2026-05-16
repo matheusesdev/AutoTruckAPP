@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { agendamentoService } from '../services/api';
 
-const DetalheServicoScreen = ({ route }) => {
+const DetalheServicoScreen = ({ route, navigation }) => {
   const { servico } = route.params;
   const [statusAtual, setStatusAtual] = useState(servico.status);
   const [loading, setLoading] = useState(false);
@@ -86,9 +86,18 @@ const DetalheServicoScreen = ({ route }) => {
       </View>
 
       {statusAtual.toLowerCase() === 'agendado' && (
-        <TouchableOpacity style={styles.btnCancelar} onPress={handleCancelar} disabled={loading}>
-          {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnTexto}>Cancelar agendamento</Text>}
-        </TouchableOpacity>
+        <>
+          <TouchableOpacity 
+            style={styles.btnReagendar} 
+            onPress={() => navigation.navigate('EditarAgendamento', { servico })}
+          >
+            <Text style={styles.btnTexto}>📅 Reagendar Serviço</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.btnCancelar} onPress={handleCancelar} disabled={loading}>
+            {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnTexto}>Cancelar agendamento</Text>}
+          </TouchableOpacity>
+        </>
       )}
     </ScrollView>
   );
@@ -113,7 +122,8 @@ const styles = StyleSheet.create({
   pontoAtivo: { backgroundColor: '#28a745' },
   pontoCancelado: { backgroundColor: '#6c757d' },
   etapaTexto: { fontSize: 10, color: '#666', textAlign: 'center' },
-  btnCancelar: { backgroundColor: '#dc3545', padding: 18, borderRadius: 10, alignItems: 'center', marginTop: 20 },
+  btnReagendar: { backgroundColor: '#E87722', padding: 18, borderRadius: 10, alignItems: 'center', marginTop: 20 },
+  btnCancelar: { backgroundColor: '#dc3545', padding: 18, borderRadius: 10, alignItems: 'center', marginTop: 12 },
   btnTexto: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
 });
 

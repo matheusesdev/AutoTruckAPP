@@ -136,6 +136,34 @@ export const agendamentoService = {
       throw error.response?.data?.message || 'Erro ao cancelar agendamento';
     }
   },
+
+  obterAgendamento: async (id) => {
+    try {
+      const response = await api.get(`/services/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || 'Erro ao obter agendamento';
+    }
+  },
+
+  reagendarAgendamento: async (id, dados) => {
+    try {
+      const response = await api.put(`/services/${id}`, dados);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || 'Erro ao reagendar agendamento';
+    }
+  },
+
+  obterDatasDisponiveis: async () => {
+    try {
+      const response = await api.get('/services/datas-disponiveis');
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar datas disponíveis', error);
+      return {};
+    }
+  },
 };
 
 // Busca de peças no backend. Suporta pesquisa por termo, veículo, código de barras e VIN.

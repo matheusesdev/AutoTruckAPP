@@ -153,6 +153,33 @@ Todas as 7 funcionalidades foram implementadas com sucesso!
 
 ---
 
+Aqui está, no mesmo padrão exato e direto ao ponto:
+
+### 8. AT-24: Reagendar Serviço
+
+**Arquivos:**
+`src/screens/EditarAgendamentoScreen.js` (Interface principal)
+`src/services/api.js` (Métodos HTTP adicionados)
+`src/navigation/AppNavigator.js` (Nova rota adicionada)
+`src/screens/DetalheServicoScreen.js` (Botão "Reagendar" adicionado)
+
+**Funcionalidades:**
+
+- ✅ Visualizar dados do agendamento atual (serviço, veículo, data/hora)
+- ✅ Calendário inteligente em português com bloqueio de datas passadas (mínimo 24h)
+- ✅ Modal dinâmico para seleção de horários disponíveis
+- ✅ Validação e salvamento de alterações via API (`PUT /services/:id`)
+- ✅ Feedback visual de sucesso ou erro via Alert
+- ✅ Voltar automaticamente para a tela anterior após salvar
+
+**Como testar:**
+
+1. Navegue até um serviço com status "AGENDADO" e clique em "Reagendar Serviço"
+2. Escolha uma data disponível no calendário e selecione um horário no modal
+3. Clique em "Confirmar Reagendamento" - o app exibirá o sucesso e voltará de tela
+
+---
+
 ## 🏗️ Arquitetura e Integração de API
 
 ### Services de API (`src/services/api.js`)

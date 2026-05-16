@@ -20,6 +20,7 @@ import PerfilScreen from '../screens/PerfilScreen';
 // Telas de agendamento, detalhes e fluxos complementares.
 import AgendarServicoScreen from '../screens/AgendarServicoScreen';
 import DetalheServicoScreen from '../screens/DetalheServicoScreen';
+import EditarAgendamentoScreen from '../screens/EditarAgendamentoScreen';
 import { navigationRef } from './navigationService';
 import DetalhePecasScreen from '../screens/DetalhePecasScreen';
 import ScannerScreen from '../screens/ScannerScreen';
@@ -160,6 +161,12 @@ export default function AppNavigator() {
           name="DetalheServico" 
           component={DetalheServicoScreen} 
           options={{ title: 'Detalhes do serviço', headerTintColor: theme.colors.primary }} 
+        />
+
+        <Stack.Screen 
+          name="EditarAgendamento" 
+          component={EditarAgendamentoScreen} 
+          options={{ title: 'Reagendar Serviço', headerTintColor: theme.colors.primary }} 
         />
 
         {/* Detalhe de peça */}
