@@ -1,0 +1,28 @@
+// src/services/emergenciaService.js
+import api from './api';
+
+/**
+ * Enviar solicitação de atendimento emergencial
+ * @param {Object} dados - Dados da emergência
+ * @param {number} dados.latitude - Latitude do usuário
+ * @param {number} dados.longitude - Longitude do usuário
+ * @param {string} dados.endereco - Endereço legível do usuário
+ * @param {string} dados.descricao - Descrição do problema
+ */
+export const solicitarEmergencia = async (dados) => {
+  const response = await api.post('/emergency', {
+    latitude: dados.latitude,
+    longitude: dados.longitude,
+    endereco: dados.endereco,
+    descricao: dados.descricao,
+  });
+  return response.data;
+};
+
+/**
+ * Buscar status do atendimento emergencial ativo
+ */
+export const buscarEmergenciaAtiva = async () => {
+  const response = await api.get('/emergency/active');
+  return response.data;
+};

@@ -16,6 +16,7 @@ import PecasScreen from '../screens/PecasScreen';
 import VeiculosScreen from '../screens/VeiculosScreen';
 import ServicosScreen from '../screens/ServicosScreen';
 import PerfilScreen from '../screens/PerfilScreen';
+import EmergenciaScreen from '../screens/EmergenciaScreen';
 
 // Telas de agendamento, detalhes e fluxos complementares.
 import AgendarServicoScreen from '../screens/AgendarServicoScreen';
@@ -210,6 +211,12 @@ export default function AppNavigator() {
           name="DetalhesPedido"
           component={DetalhesPedidoScreen}
           options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="Emergencia"
+          component={EmergenciaScreen}
+          options={{ title: 'Atendimento Emergencial', headerTintColor: theme.colors.error }}
         />
       </Stack.Navigator>
     </NavigationContainer>
