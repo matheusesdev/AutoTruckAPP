@@ -2,7 +2,7 @@
 
 ## ✅ Status de Implementação
 
-Todas as 7 funcionalidades foram implementadas com sucesso!
+Todas as 12 funcionalidades foram implementadas com sucesso!
 
 ---
 
@@ -153,18 +153,15 @@ Todas as 7 funcionalidades foram implementadas com sucesso!
 
 ---
 
-Aqui está, no mesmo padrão exato e direto ao ponto:
-
 ### 8. AT-24: Reagendar Serviço
 
 **Arquivos:**
-`src/screens/EditarAgendamentoScreen.js` (Interface principal)
-`src/services/api.js` (Métodos HTTP adicionados)
-`src/navigation/AppNavigator.js` (Nova rota adicionada)
-`src/screens/DetalheServicoScreen.js` (Botão "Reagendar" adicionado)
+- `src/screens/EditarAgendamentoScreen.js` ✅ Interface principal
+- `src/services/api.js` ✅ Métodos HTTP adicionados
+- `src/navigation/AppNavigator.js` ✅ Nova rota adicionada
+- `src/screens/DetalheServicoScreen.js` ✅ Botão "Reagendar" adicionado
 
 **Funcionalidades:**
-
 - ✅ Visualizar dados do agendamento atual (serviço, veículo, data/hora)
 - ✅ Calendário inteligente em português com bloqueio de datas passadas (mínimo 24h)
 - ✅ Modal dinâmico para seleção de horários disponíveis
@@ -173,7 +170,6 @@ Aqui está, no mesmo padrão exato e direto ao ponto:
 - ✅ Voltar automaticamente para a tela anterior após salvar
 
 **Como testar:**
-
 1. Navegue até um serviço com status "AGENDADO" e clique em "Reagendar Serviço"
 2. Escolha uma data disponível no calendário e selecione um horário no modal
 3. Clique em "Confirmar Reagendamento" - o app exibirá o sucesso e voltará de tela
@@ -183,7 +179,7 @@ Aqui está, no mesmo padrão exato e direto ao ponto:
 ### 9. AT-25: Notificações Push e Histórico
 
 **Arquivo:**
-`src/services/notificationService.ts` ✅ NOVO
+- `src/services/notificationService.ts` ✅ NOVO
 
 **Funcionalidades:**
 - ✅ Configuração do comportamento padrão de notificações (som, alerta, badge)
@@ -206,6 +202,89 @@ Aqui está, no mesmo padrão exato e direto ao ponto:
 3. Receber uma notificação push — ela aparecerá no histórico
 4. Clicar em uma notificação para marcá-la como lida
 5. O badge no menu será atualizado conforme notificações não lidas
+
+---
+
+### 10. AT-26: Solicitação de Atendimento Emergencial
+
+**Arquivos:**
+- `src/screens/EmergenciaScreen.js` ✅ NOVO - Tela de emergência
+- `src/screens/HomeScreen.js` ✅ Editado - Botão de emergência adicionado
+- `src/services/emergenciaService.js` ✅ NOVO - Service de emergência
+- `src/navigation/AppNavigator.js` ✅ Editado - Rota adicionada
+
+**Funcionalidades:**
+- ✅ Botão de emergência visível e destacado (vermelho) na tela inicial
+- ✅ Captura automática de localização via GPS (`expo-location`)
+- ✅ Exibição de endereço legível com coordenadas GPS
+- ✅ Atualização manual da localização
+- ✅ Campo de descrição do problema com contador de caracteres (máx. 500)
+- ✅ Validação mínima de 10 caracteres na descrição
+- ✅ Envio imediato via `POST /emergency`
+- ✅ Feedback de erro tratado (incluindo arrays de mensagens)
+- ✅ Navegação automática para acompanhamento após envio
+- ✅ Mensagem de aviso de uso responsável
+
+**Como testar:**
+1. Na tela inicial, clique no botão vermelho "EMERGÊNCIA"
+2. Aguarde a obtenção da localização via GPS
+3. Descreva o problema (mín. 10 caracteres)
+4. Clique em "Solicitar Atendimento Emergencial"
+5. Após o envio, clique em "Acompanhar" para ver o status
+
+---
+
+### 11. AT-27: Acompanhamento de Atendimento Emergencial em Tempo Real
+
+**Arquivos:**
+- `src/screens/AcompanhamentoEmergenciaScreen.js` ✅ NOVO
+- `src/services/emergenciaService.js` ✅ Editado - Busca por ID adicionada
+- `src/navigation/AppNavigator.js` ✅ Editado - Rota adicionada
+
+**Funcionalidades:**
+- ✅ Tela de acompanhamento com status atual do atendimento
+- ✅ 4 status suportados: Aguardando, Mecânico a caminho, Em atendimento, Concluído
+- ✅ Ícone e cor distintos para cada status
+- ✅ Exibição do tempo estimado de chegada do mecânico
+- ✅ Linha do tempo visual com progresso dos status
+- ✅ Exibição dos dados do mecânico designado (nome e telefone)
+- ✅ Detalhes da solicitação (endereço e descrição)
+- ✅ Atualização automática via polling a cada 10 segundos
+- ✅ Botão de atualização manual
+- ✅ Tratamento de erro com opção de tentar novamente
+- ✅ Polling interrompido automaticamente ao concluir ou cancelar
+
+**Como testar:**
+1. Envie uma solicitação emergencial (AT-26)
+2. Clique em "Acompanhar" no Alert de confirmação
+3. Veja o status atual e a linha do tempo de progresso
+4. A tela atualiza automaticamente a cada 10 segundos
+5. Clique em "Atualizar agora" para forçar uma atualização
+
+
+### 12. AT-28: Compartilhar Localização via GPS
+
+**Arquivos:**
+- `src/screens/EmergenciaScreen.js` ✅ Já implementado na AT-26
+
+**Funcionalidades:**
+- ✅ Solicitação de permissão de localização ao usuário (`expo-location`)
+- ✅ Captura de coordenadas GPS em alta precisão (latitude e longitude)
+- ✅ Conversão de coordenadas em endereço legível via `reverseGeocodeAsync`
+- ✅ Exibição do endereço e coordenadas na tela para o usuário confirmar
+- ✅ Atualização manual da localização pelo usuário
+- ✅ Mensagem orientando ativar o GPS caso a permissão seja negada
+- ✅ Coordenadas enviadas junto com a solicitação emergencial (`POST /emergency`)
+
+**Observação:**
+Esta funcionalidade foi implementada como parte da AT-26, já que os critérios de aceite são complementares e compartilham o mesmo fluxo de tela.
+
+**Como testar:**
+1. Acesse a tela de emergência pelo botão na HomeScreen
+2. A permissão de GPS será solicitada automaticamente
+3. O endereço e as coordenadas serão exibidos na seção "Sua localização"
+4. Clique em "Atualizar localização" para capturar novamente
+5. Ao enviar a solicitação, as coordenadas são incluídas automaticamente no payload
 
 ---
 
@@ -236,6 +315,13 @@ notificacaoService.listarNotificacoes()  // GET /notifications
 notificacaoService.marcarComoLida()      // PATCH /notifications/:id/read
 ```
 
+### Services de Emergência (`src/services/emergenciaService.js`)
+
+```javascript
+solicitarEmergencia()      // POST /emergency
+buscarEmergenciaAtiva()    // GET /emergency/:id ou GET /emergency/active
+```
+
 ### State Management
 
 - **Zustand Stores:**
@@ -249,28 +335,33 @@ notificacaoService.marcarComoLida()      // PATCH /notifications/:id/read
 ```
 src/
 ├── screens/
-│   ├── PerfilScreen.js              ✅ Editado - Edição de perfil
-│   ├── SolicitarOrcamentoScreen.js  ✅ Editado - Novo formulário
-│   ├── OrcamentosScreen.js          ✅ Editado - Lista completa
-│   ├── PedidosScreen.js             ✅ NOVO - Histórico de pedidos
-│   ├── DetalhesPedidoScreen.js      ✅ NOVO - Rastreamento
-│   └── NotificacoesScreen.js        ✅ NOVO - Notificações
+│   ├── PerfilScreen.js                      ✅ Editado - Edição de perfil
+│   ├── SolicitarOrcamentoScreen.js          ✅ Editado - Novo formulário
+│   ├── OrcamentosScreen.js                  ✅ Editado - Lista completa
+│   ├── PedidosScreen.js                     ✅ NOVO - Histórico de pedidos
+│   ├── DetalhesPedidoScreen.js              ✅ NOVO - Rastreamento
+│   ├── NotificacoesScreen.js                ✅ NOVO - Notificações
+│   ├── HomeScreen.js                        ✅ Editado - Botão emergência
+│   ├── EmergenciaScreen.js                  ✅ NOVO - Tela de emergência
+│   └── AcompanhamentoEmergenciaScreen.js    ✅ NOVO - Acompanhamento em tempo real
 ├── services/
-│   └── api.js                       ✅ Editado - 4 novos services
+│   ├── api.js                               ✅ Editado - 4 novos services
+│   ├── emergenciaService.js                 ✅ NOVO - Service de emergência
+│   └── notificationService.ts              ✅ NOVO - Service de notificações push
 ├── store/
-│   ├── userStore.js                 (existente)
-│   └── notificacaoStore.js          ✅ NOVO
+│   ├── userStore.js                         (existente)
+│   └── notificacaoStore.js                  ✅ NOVO
 ├── components/
-│   └── NotificacaoContainer.js      ✅ NOVO - Toast visual
+│   └── NotificacaoContainer.js              ✅ NOVO - Toast visual
 └── navigation/
-    └── AppNavigator.js              ✅ Editado - Rotas e abas
+    └── AppNavigator.js                      ✅ Editado - Rotas e abas
 ```
 
 ---
 
 ## 🎯 Padrões de Código Utilizados
 
-✅ **React Hooks:** `useState`, `useEffect`, `useCallback`, `useFocusEffect`
+✅ **React Hooks:** `useState`, `useEffect`, `useCallback`, `useFocusEffect`, `useRef`
 ✅ **State Management:** Zustand para stores globais
 ✅ **API Integration:** Axios com interceptadores
 ✅ **Navigation:** React Navigation com Bottom Tabs + Stack
@@ -278,18 +369,20 @@ src/
 ✅ **Loading States:** ActivityIndicator com estados de carregamento
 ✅ **Error Handling:** Alert e try-catch com mensagens amigáveis
 ✅ **Animations:** Animated API do React Native
+✅ **Real-time:** Polling com `setInterval` e cleanup automático
 
 ---
 
 ## ⚙️ Dependências Utilizadas
 
-Todas as dependências já existem no `package.json`:
 - ✅ axios (API calls)
 - ✅ zustand (State management)
 - ✅ @react-navigation (Navigation)
 - ✅ @react-native-picker/picker (Seletor de veículos)
 - ✅ @expo/vector-icons (Ícones)
 - ✅ react-native (UI base)
+- ✅ expo-location (GPS - instalado para AT-26)
+- ✅ expo-notifications (Push notifications - instalado para AT-25)
 
 ---
 
@@ -324,6 +417,9 @@ w
 - [ ] Marcar notificações como lidas
 - [ ] Pull-to-refresh em listas
 - [ ] Navegar entre todas as novas telas
+- [ ] Reagendar serviço pelo calendário
+- [ ] Solicitar atendimento emergencial com GPS
+- [ ] Acompanhar atendimento emergencial em tempo real
 
 ---
 
@@ -344,6 +440,11 @@ Certifique-se de que seu backend implementa os seguintes endpoints:
 | GET | `/orders/:id/tracking` | Rastreamento do pedido |
 | GET | `/notifications` | Listar notificações |
 | PATCH | `/notifications/:id/read` | Marcar como lida |
+| POST | `/notifications/register-device` | Registrar token push |
+| POST | `/emergency` | Solicitar atendimento emergencial |
+| GET | `/emergency/active` | Buscar emergência ativa |
+| GET | `/emergency/:id` | Buscar emergência por ID |
+| PUT | `/services/:id` | Reagendar serviço |
 
 ---
 
