@@ -20,9 +20,10 @@ export const solicitarEmergencia = async (dados) => {
 };
 
 /**
- * Buscar status do atendimento emergencial ativo
+ * Buscar status do atendimento emergencial por ID ou ativo
  */
-export const buscarEmergenciaAtiva = async () => {
-  const response = await api.get('/emergency/active');
+export const buscarEmergenciaAtiva = async (id = null) => {
+  const url = id ? `/emergency/${id}` : '/emergency/active';
+  const response = await api.get(url);
   return response.data;
 };

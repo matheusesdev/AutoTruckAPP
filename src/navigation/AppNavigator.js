@@ -32,6 +32,7 @@ import SolicitarOrcamentoScreen from '../screens/SolicitarOrcamentoScreen';
 import PedidosScreen from '../screens/PedidosScreen';
 import DetalhesPedidoScreen from '../screens/DetalhesPedidoScreen';
 import NotificacoesScreen from '../screens/NotificacoesScreen';
+import AcompanhamentoEmergenciaScreen from '../screens/AcompanhamentoEmergenciaScreen';
 
 import { theme } from '../utils/theme';
 
@@ -217,6 +218,12 @@ export default function AppNavigator() {
           name="Emergencia"
           component={EmergenciaScreen}
           options={{ title: 'Atendimento Emergencial', headerTintColor: theme.colors.error }}
+        />
+
+        <Stack.Screen
+          name="AcompanhamentoEmergencia"
+          component={AcompanhamentoEmergenciaScreen}
+          options={{ title: 'Acompanhar Atendimento', headerTintColor: theme.colors.error }}
         />
       </Stack.Navigator>
     </NavigationContainer>

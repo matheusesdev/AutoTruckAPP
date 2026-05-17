@@ -77,7 +77,8 @@ export default function EmergenciaScreen({ navigation }) {
 
     setEnviando(true);
     try {
-      await solicitarEmergencia({
+      // Salvar o retorno da API para obter o ID da emergência
+      const response = await solicitarEmergencia({
         latitude: localizacao.latitude,
         longitude: localizacao.longitude,
         endereco,
@@ -87,7 +88,11 @@ export default function EmergenciaScreen({ navigation }) {
       Alert.alert(
         '✅ Emergência enviada!',
         'Sua solicitação foi recebida. Um mecânico disponível entrará em contato em breve.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
+        [{
+          text: 'Acompanhar',
+          // Navegar para tela de acompanhamento passando o ID da emergência
+          onPress: () => navigation.navigate('AcompanhamentoEmergencia', { emergenciaId: response?.id }),
+        }]
       );
     } catch (error) {
       const rawMessage = error?.response?.data?.message || error?.message || 'Não foi possível enviar a emergência. Tente novamente.';
