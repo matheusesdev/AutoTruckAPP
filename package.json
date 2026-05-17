@@ -19,6 +19,7 @@
     "expo-camera": "~17.0.10",
     "expo-image-picker": "^55.0.20",
     "expo-linear-gradient": "~15.0.8",
+    "expo-notifications": "^0.30.0",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -29,5 +30,8 @@
     "react-native-web": "^0.21.0",
     "zustand": "^5.0.12"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "typescript": "~5.9.2"
+  }
 }

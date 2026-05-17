@@ -180,6 +180,35 @@ Aqui está, no mesmo padrão exato e direto ao ponto:
 
 ---
 
+### 9. AT-25: Notificações Push e Histórico
+
+**Arquivo:**
+`src/services/notificationService.ts` ✅ NOVO
+
+**Funcionalidades:**
+- ✅ Configuração do comportamento padrão de notificações (som, alerta, badge)
+- ✅ Solicitação e obtenção de token push do dispositivo (Expo Push Token)
+- ✅ Registro e atualização do token no backend (`POST /notifications/register-device`)
+- ✅ Salvar notificações recebidas no histórico local (AsyncStorage)
+- ✅ Carregar histórico de notificações (máximo 100)
+- ✅ Marcar notificação como lida (local + sincronização com backend)
+- ✅ Obter notificações não lidas e contagem para badge
+- ✅ Limpar histórico completo ou apenas notificações lidas
+- ✅ Listener para notificações recebidas em foreground
+- ✅ Listener para notificações tocadas pelo usuário
+- ✅ Notificação de teste para ambiente de desenvolvimento
+- ✅ Helper de ícone/cor por tipo (serviço, pedido, orçamento, sistema)
+- ✅ Formatação de data relativa (ex: "2h atrás", "3d atrás")
+
+**Como testar:**
+1. Iniciar o app — permissão de notificação será solicitada automaticamente
+2. Navegar até a aba "Notificações" para ver o histórico
+3. Receber uma notificação push — ela aparecerá no histórico
+4. Clicar em uma notificação para marcá-la como lida
+5. O badge no menu será atualizado conforme notificações não lidas
+
+---
+
 ## 🏗️ Arquitetura e Integração de API
 
 ### Services de API (`src/services/api.js`)
